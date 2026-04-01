@@ -5,13 +5,16 @@ build-backend = "hatchling.build"
 [project]
 name = "jessaminescikitlearn"
 dynamic = ["version"]
-description = 'Python scikit-learn wrapper for Jessamine'
+description = "Python scikit-learn wrapper for Jessamine"
 readme = "README.md"
 requires-python = ">=3.12"
-license = "GPL-3"
+license = "GPL-3-or-later"
 keywords = []
 authors = [
   { name = "W. Garrett Mitchener", email = "garrett.mitchener@gmail.com" },
+  {name = "Aidan Riordan"},
+  {name = "Latherial Calbert"},
+  {name = "Aiden Camilleri"},
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -22,7 +25,16 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+    "numpy>=1.21",
+    "scikit-learn>=1.0",
+    "sympy>=1.10",
+    "juliacall>=0.9.14",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 
 [project.urls]
 Documentation = "https://github.com/wgm-applied-math/jessaminescikitlearn#readme"
