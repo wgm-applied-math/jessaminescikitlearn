@@ -18,4 +18,4 @@ pip install jessaminescikitlearn
 
 ## License
 
-`jessaminescikitlearn` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+`jessaminescikitlearn` is distributed under the terms of the [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) license.

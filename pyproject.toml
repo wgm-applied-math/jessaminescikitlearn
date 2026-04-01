@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "jessaminescikitlearn"
 dynamic = ["version"]
-description = 'Python scikit-learn interface to Jessamine'
+description = 'Python scikit-learn wrapper for Jessamine'
 readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3"
