@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jessaminescikitlearn"
+dynamic = ["version"]
+description = 'Python scikit-learn interface to Jessamine'
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3"
+keywords = []
+authors = [
+  { name = "W. Garrett Mitchener", email = "garrett.mitchener@gmail.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/wgm-applied-math/jessaminescikitlearn#readme"
+Issues = "https://github.com/wgm-applied-math/jessaminescikitlearn/issues"
+Source = "https://github.com/wgm-applied-math/jessaminescikitlearn"
+
+[tool.hatch.version]
+path = "src/jessaminescikitlearn/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/jessaminescikitlearn tests}"
+
+[tool.coverage.run]
+source_pkgs = ["jessaminescikitlearn", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/jessaminescikitlearn/__about__.py",
+]
+
+[tool.coverage.paths]
+jessaminescikitlearn = ["src/jessaminescikitlearn", "*/jessaminescikitlearn/src/jessaminescikitlearn"]
+tests = ["tests", "*/jessaminescikitlearn/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
