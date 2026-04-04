@@ -1,6 +1,9 @@
 # Emacs auto-save files
 *~
 
+# Python directories
+__pycache__
+
 # Jupyter stuff
 .ipynb_checkpoints
 
