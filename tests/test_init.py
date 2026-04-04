@@ -2,8 +2,13 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import numpy as np
-import sklearn
-import sympy
+import pytest
 
-from juliacall import Main as jl
+print(dir())
+print(__package__)
+
+# This is nuts.
+import src.jessaminescikitlearn
+
+def test_init():
+    assert True
