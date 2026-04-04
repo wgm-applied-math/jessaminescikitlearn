@@ -2,7 +2,10 @@
 *~
 
 # Python directories
-__pycache__
+__pycache__/
+
+# Where package archives are written
+dist/
 
 # Jupyter stuff
 .ipynb_checkpoints
