@@ -8,7 +8,7 @@ print(dir())
 print(__package__)
 
 # This is nuts.
-import src.jessaminescikitlearn
+import jessaminescikitlearn
 
 def test_init():
     assert True

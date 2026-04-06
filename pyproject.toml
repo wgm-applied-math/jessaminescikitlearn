@@ -13,15 +13,13 @@ license-files = ["LICENSE.txt"]
 keywords = []
 authors = [
   { name = "W. Garrett Mitchener", email = "garrett.mitchener@gmail.com" },
-  {name = "Aidan Riordan"},
-  {name = "Latherial Calbert"},
-  {name = "Aiden Camilleri"},
+  { name = "Aidan Riordan" },
+  { name = "Latherial Calbert" },
+  { name = "Aiden Camilleri" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
@@ -34,8 +32,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+dev = ["pytest>=8.0"]
 
+# [project.scripts]
+# jessamineskl = "jessaminescikitlearn.__main__:main"
 
 [project.urls]
 Documentation = "https://github.com/wgm-applied-math/jessaminescikitlearn#readme"
@@ -46,10 +46,6 @@ Source = "https://github.com/wgm-applied-math/jessaminescikitlearn"
 [tool.hatch.version]
 path = "src/jessaminescikitlearn/__about__.py"
 
-[tool.hatch.envs.types]
-extra-dependencies = [
-  "mypy>=1.0.0",
-]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -60,24 +56,29 @@ exclude = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/jessaminescikitlearn"]
 
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/jessaminescikitlearn tests}"
+# [tool.hatch.envs.types]
+# extra-dependencies = [
+#   "mypy>=1.0.0",
+# ]
 
-[tool.coverage.run]
-source_pkgs = ["jessaminescikitlearn", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/jessaminescikitlearn/__about__.py",
-]
+# [tool.hatch.envs.types.scripts]
+# check = "mypy --install-types --non-interactive {args:src/jessaminescikitlearn tests}"
 
-[tool.coverage.paths]
-jessaminescikitlearn = ["src/jessaminescikitlearn", "*/jessaminescikitlearn/src/jessaminescikitlearn"]
-tests = ["tests", "*/jessaminescikitlearn/tests"]
+# [tool.coverage.run]
+# source_pkgs = ["jessaminescikitlearn", "tests"]
+# branch = true
+# parallel = true
+# omit = [
+#   "src/jessaminescikitlearn/__about__.py",
+# ]
 
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+# [tool.coverage.paths]
+# jessaminescikitlearn = ["src/jessaminescikitlearn", "*/jessaminescikitlearn/src/jessaminescikitlearn"]
+# tests = ["tests", "*/jessaminescikitlearn/tests"]
+
+# [tool.coverage.report]
+# exclude_lines = [
+#   "no cov",
+#   "if __name__ == .__main__.:",
+#   "if TYPE_CHECKING:",
+# ]
