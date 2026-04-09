@@ -7,3 +7,6 @@ import sklearn
 import sympy
 
 from juliacall import Main as jl
+import juliapkg
+
+juliapkg.resolve()

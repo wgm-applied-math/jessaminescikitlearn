@@ -7,8 +7,8 @@ import pytest
 print(dir())
 print(__package__)
 
-# This is nuts.
 import jessaminescikitlearn
+import jessaminescikitlearn.Regression
 
 def test_init():
     assert True
