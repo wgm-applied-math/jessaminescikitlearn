@@ -10,3 +10,7 @@ from juliacall import Main as jl
 import juliapkg
 
 juliapkg.resolve()
+
+jl.seval("""
+import JessamineSciKitLearn
+""")
