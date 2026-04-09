@@ -1,0 +1,17 @@
+{
+  "julia": "1.12",
+  "packages": {
+    "Jessamine": {
+      "uuid": "2807b6de-c4a7-4d42-9dc5-a90bb38e3ffd",
+      "path": "../Jessamine.jl"
+    },
+    "JessamineSciKitLearn": {
+      "uuid": "b1d08412-962e-4858-8b05-b07944b12f63",
+      "path": "../JessamineSciKitLearn.jl"
+    },
+    "JessamineSymbolics": {
+      "uuid": "d293f0e1-bc3b-41ab-aeda-c552fb2511c4",
+      "path": "../JessamineSymbolics.jl"
+    }
+  }
+}
