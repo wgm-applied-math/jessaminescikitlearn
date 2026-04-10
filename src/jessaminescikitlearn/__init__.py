@@ -2,6 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# One Julia thread to avoid segfaults
+import os
+os.environ["JULIA_NUM_THREADS"] = "1"
+
+
 from juliacall import Main as jl
 import juliapkg
 

@@ -24,7 +24,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         X_f64 = np.ascontiguousarray(X, dtype=np.float64)
         y_f64 = np.ascontiguousarray(y, dtype=np.float64)
         self.raw_reg_str = jl.regression_main(X_f64, y_f64, self.params)
-        self.is_fitted = true
+        self.is_fitted = True
 
     def predict(self, X):
         pass

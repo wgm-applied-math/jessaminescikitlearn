@@ -20,10 +20,20 @@ def make_data():
     x2_dist = stats.Normal(mu=0.0, sigma=2.0)
     np.random.seed(95548004)
     n_points = 30
-    x1 = x1_dist.sample(shape=(n_points,1))
-    x2 = x2_dist.sample(shape=(n_points,1))
+    # Just so this is clear,
+    # for the types to check out properly in Julia
+    # while conforming to the conventions of scikit-learn:
+    # X needs to be a matrix in column-tabular form
+    # y needs to be a vector, not a single-column matrix
+    # which means x1 and x2 have to start as vectors
+    x1 = x1_dist.sample(shape=(n_points,))
+    x2 = x2_dist.sample(shape=(n_points,))
     y = f(x1, x2)
-    X = np.block([x1, x2])
+    # This is how to stack x1 and x2 as columns
+    # into a matrix in column-tabular form
+    X = np.block(
+        [x1.reshape(n_points,1),
+         x2.reshape(n_points,1)])
     return (X, y)
 
 def test_fit():
