@@ -6,18 +6,19 @@ import numpy as np
 import sklearn
 import sympy
 
-from juliacall import Main as jl, convert as jlconvert
-
 from sklearn.base import BaseEstimator, RegressorMixin
+
+from . import jl
 
 class Regressor(RegressorMixin, BaseEstimator):
 
     def __init__(
             self,
             stop_deadline=None):
-        p = object()
-        p.stop_deadline = stop_deadline
-        self.params = dict(p.__dict__)
+        p = dict()
+        if stop_deadline is not None:
+            p["stop_deadline"] = stop_deadline
+        self.params = p
 
     def fit(self, X, y):
         X_f64 = np.ascontiguousarray(X, dtype=np.float64)
