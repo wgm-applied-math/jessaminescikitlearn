@@ -7,6 +7,8 @@ import numpy as np
 import sklearn
 import sympy
 
+from typing import Any, Optional
+
 from sklearn.base import BaseEstimator, RegressorMixin
 
 from . import jl
@@ -15,8 +17,16 @@ class Regressor(RegressorMixin, BaseEstimator):
 
     def __init__(
             self,
-            stop_deadline=None):
-        p = dict()
+            stop_deadline : Optional[dt.datetime] = None,
+            genome_spec : Optional[dict] = None,
+            lambda_b : float = 1e-10,
+            lambda_p : float = 1e-10,
+            lambda_op : float = 1e-10,
+            num_islands : int = 1,
+            stop_threshold : Optional[float] = None,
+            exploration_spec : Optional[dict] = None,
+            simplification_spec : Optional[dict] = None):
+        p : dict[str,Any] = dict()
         if stop_deadline is None:
             n = dt.datetime.now(tz=None)
             deltat = dt.timedelta(seconds=45)
@@ -27,7 +37,14 @@ class Regressor(RegressorMixin, BaseEstimator):
             # So pyconvert fails, no explanation.
             stop_deadline = stop_deadline.replace(microsecond=0)
         p["stop_deadline"] = stop_deadline
-
+        if genome_spec:
+            p["genome_spec"] = genome_spec
+        if stop_threshold:
+            p["stop_threshold"] = stop_threshold
+        if exploration_spec:
+            p["exploration_spec"] = exploration_spec
+        if simplification_spec:
+            p["simplification_spec"] = simplification_spec
         self.params = p
 
     def fit(self, X, y):
