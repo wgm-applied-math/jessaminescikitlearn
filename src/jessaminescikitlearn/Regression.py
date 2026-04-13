@@ -19,7 +19,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         p = dict()
         if stop_deadline is None:
             n = dt.datetime.now(tz=None)
-            deltat = dt.timedelta(seconds=20)
+            deltat = dt.timedelta(seconds=45)
             stop_deadline = n + deltat
             # Bizarre: If the number of microseconds is not a
             # multiple of 1000, Julia's DateTime can't handle it
