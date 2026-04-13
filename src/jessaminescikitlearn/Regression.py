@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import datetime as dt
 import numpy as np
 import sklearn
 import sympy
@@ -16,8 +17,17 @@ class Regressor(RegressorMixin, BaseEstimator):
             self,
             stop_deadline=None):
         p = dict()
-        if stop_deadline is not None:
-            p["stop_deadline"] = stop_deadline
+        if stop_deadline is None:
+            n = dt.datetime.now(tz=None)
+            deltat = dt.timedelta(seconds=20)
+            stop_deadline = n + deltat
+            # Bizarre: If the number of microseconds is not a
+            # multiple of 1000, Julia's DateTime can't handle it
+            # because it only represents miliseconds.
+            # So pyconvert fails, no explanation.
+            stop_deadline = stop_deadline.replace(microsecond=0)
+        p["stop_deadline"] = stop_deadline
+
         self.params = p
 
     def fit(self, X, y):
