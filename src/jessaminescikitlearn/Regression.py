@@ -31,12 +31,15 @@ class Regressor(RegressorMixin, BaseEstimator):
             n = dt.datetime.now(tz=None)
             deltat = dt.timedelta(seconds=45)
             stop_deadline = n + deltat
-            # Bizarre: If the number of microseconds is not a
-            # multiple of 1000, Julia's DateTime can't handle it
-            # because it only represents miliseconds.
-            # So pyconvert fails, no explanation.
-            stop_deadline = stop_deadline.replace(microsecond=0)
+        # Bizarre: If the number of microseconds is not a
+        # multiple of 1000, Julia's DateTime can't handle it
+        # because it only represents miliseconds.
+        # So pyconvert fails, no explanation.
+        # Simplest solution is to zero out the microseconds field.
+        stop_deadline = stop_deadline.replace(microsecond=0)
         p["stop_deadline"] = stop_deadline
+        if rng_seed:
+            p["rng_seed"] = rng_seed
         if genome_spec:
             p["genome_spec"] = genome_spec
         if stop_threshold:
