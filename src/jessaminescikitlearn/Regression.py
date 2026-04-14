@@ -18,6 +18,7 @@ class Regressor(RegressorMixin, BaseEstimator):
     def __init__(
             self,
             stop_deadline : Optional[dt.datetime] = None,
+            rng_seed : Optional[int] = None,
             genome_spec : Optional[dict] = None,
             lambda_b : float = 1e-10,
             lambda_p : float = 1e-10,
