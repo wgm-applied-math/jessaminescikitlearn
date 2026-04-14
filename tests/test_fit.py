@@ -5,6 +5,7 @@
 import pytest
 import numpy as np
 from scipy import stats
+import sympy
 
 print(dir())
 print(__package__)
@@ -39,4 +40,5 @@ def make_data():
 def test_fit():
     X, y = make_data()
     r = JR.Regressor()
-    print(r.fit(X, y))
+    r.fit(X, y)
+    print(r.raw_reg_str)
