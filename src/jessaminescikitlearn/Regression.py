@@ -13,7 +13,6 @@ from typing import Any, Optional
 from sklearn.base import BaseEstimator, RegressorMixin
 
 from . import jl
-from . import sympy_utils
 
 
 class Regressor(RegressorMixin, BaseEstimator):
