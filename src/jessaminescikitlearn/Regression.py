@@ -7,11 +7,14 @@ import numpy as np
 import sklearn
 import sympy
 
+
 from typing import Any, Optional
 
 from sklearn.base import BaseEstimator, RegressorMixin
 
 from . import jl
+from . import sympy_utils
+
 
 class Regressor(RegressorMixin, BaseEstimator):
 
@@ -55,6 +58,8 @@ class Regressor(RegressorMixin, BaseEstimator):
         X_f64 = np.ascontiguousarray(X, dtype=np.float64)
         y_f64 = np.ascontiguousarray(y, dtype=np.float64)
         self.raw_reg_str = jl.regression_main(X_f64, y_f64, self.params)
+        self.sym = sympy.parsing.sympy_parser.parse_expr(
+            self.raw_reg_str)
         self.is_fitted = True
 
     def predict(self, X):
