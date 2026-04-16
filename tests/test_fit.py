@@ -42,3 +42,4 @@ def test_fit():
     r = JR.Regressor()
     r.fit(X, y)
     print(r.raw_reg_str)
+    print(r.sym)
