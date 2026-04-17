@@ -34,29 +34,31 @@ class Regressor(RegressorMixin, BaseEstimator):
         # TODO I think sklearn expects all of those parameters to
         # correspond to fields on self.
 
-        p : dict[str,Any] = dict()
+        # The BaseEstimator.get_params function uses python magic
+        # to go through the definition of __init__ and fish out
+        # keyword parameters, which are pulled from attributes of self
+        # into a dict().
         if stop_deadline is None:
             n = dt.datetime.now(tz=None)
             deltat = dt.timedelta(seconds=45)
             stop_deadline = n + deltat
+        assert isinstance(stop_deadline, dt.datetime)
         # Bizarre: If the number of microseconds is not a
         # multiple of 1000, Julia's DateTime can't handle it
         # because it only represents miliseconds.
         # So pyconvert fails, no explanation.
         # Simplest solution is to zero out the microseconds field.
         stop_deadline = stop_deadline.replace(microsecond=0)
-        p["stop_deadline"] = stop_deadline
-        if rng_seed:
-            p["rng_seed"] = rng_seed
-        if genome_spec:
-            p["genome_spec"] = genome_spec
-        if stop_threshold:
-            p["stop_threshold"] = stop_threshold
-        if exploration_spec:
-            p["exploration_spec"] = exploration_spec
-        if simplification_spec:
-            p["simplification_spec"] = simplification_spec
-        self.params = p
+        self.stop_deadline = stop_deadline
+        self.rng_seed = rng_seed
+        self.genome_spec = genome_spec
+        self.lambda_p = float(lambda_p)
+        self.lambda_b = float(lambda_b)
+        self.lambda_op = float(lambda_op)
+        self.num_islands = int(num_islands)
+        self.stop_threshold = float(stop_threshold) if stop_threshold is not None else None
+        self.exploration_spec = exploration_spec
+        self.simplification_spec = simplification_spec
 
     def fit(self, X, y):
 
@@ -66,7 +68,7 @@ class Regressor(RegressorMixin, BaseEstimator):
             estimator="Jessamine")
 
         n_points, n_vars = X.shape
-        self.raw_reg_str = jl.regression_main(X, y, self.params)
+        self.raw_reg_str = jl.regression_main(X, y, self.get_params())
         #self.raw_reg_str = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
         self.sym = sympy.parsing.sympy_parser.parse_expr(
             self.raw_reg_str)
@@ -89,9 +91,6 @@ class Regressor(RegressorMixin, BaseEstimator):
         x_cols = np.unstack(X, axis=1)
         return self.f(*x_cols)
 
-    # TODO Also check:
-    # get_params
-    # set_params
 
 # From AR's AI generated code:
 
