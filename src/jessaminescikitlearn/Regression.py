@@ -7,7 +7,8 @@ import numpy as np
 import sklearn
 import sympy
 
-
+from sklearn.utils import check_X_y, check_array
+from sklearn.utils.validation import check_is_fitted
 from typing import Any, Optional
 
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -29,6 +30,10 @@ class Regressor(RegressorMixin, BaseEstimator):
             stop_threshold : Optional[float] = None,
             exploration_spec : Optional[dict] = None,
             simplification_spec : Optional[dict] = None):
+
+        # TODO I think sklearn expects all of those parameters to
+        # correspond to fields on self.
+
         p : dict[str,Any] = dict()
         if stop_deadline is None:
             n = dt.datetime.now(tz=None)
@@ -54,12 +59,42 @@ class Regressor(RegressorMixin, BaseEstimator):
         self.params = p
 
     def fit(self, X, y):
-        X_f64 = np.ascontiguousarray(X, dtype=np.float64)
-        y_f64 = np.ascontiguousarray(y, dtype=np.float64)
-        self.raw_reg_str = jl.regression_main(X_f64, y_f64, self.params)
+
+        # TODO handle DataFrame columns
+        X, y = check_X_y(
+            X, y, dtype=np.float64,
+            estimator="Jessamine")
+
+        n_points, n_vars = X.shape
+        self.raw_reg_str = jl.regression_main(X, y, self.params)
+        #self.raw_reg_str = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
         self.sym = sympy.parsing.sympy_parser.parse_expr(
             self.raw_reg_str)
+        # The 1+ here is because symbols() creates x0, x1, x2...
+        # but the Julia output involves x1, x2, ..., no x0.
+        xv = sympy.symbols(f"x:{1+n_vars}")
+        # So we let sympy create x0, but then we skip over it here.
+        f = sympy.lambdify(xv[1:], self.sym)
+        self.f = f
+        self.n_vars = n_vars
         self.is_fitted = True
 
     def predict(self, X):
-        pass
+        check_is_fitted(self, "is_fitted")
+        # TODO handle DataFrame columns
+        X = check_array(
+            X, dtype=np.float64,
+            estimator="Jessamine")
+        assert self.n_vars == X.shape[1]
+        x_cols = np.unstack(X, axis=1)
+        return self.f(*x_cols)
+
+    # TODO Also check:
+    # get_params
+    # set_params
+
+# From AR's AI generated code:
+
+# TODO Bring over model() for SRBench
+
+# TODO Maybe bring over complexity()

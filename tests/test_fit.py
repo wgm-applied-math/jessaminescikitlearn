@@ -48,11 +48,15 @@ def test_apply():
     print(f"test_apply: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
 
-def test_fit():
+def test_fit_predict():
     # disable for a moment
-    return
+    # return
     X, y = make_data()
     r = JR.Regressor()
     r.fit(X, y)
     print(r.raw_reg_str)
     print(r.sym)
+    yHat = r.predict(X)
+    discrepancy = sum((yHat - y)**2)
+    print(f"test_fit_predict: discrepancy = {discrepancy}")
+    assert discrepancy < 1e-10
