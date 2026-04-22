@@ -29,6 +29,7 @@ dependencies = [
     "scikit-learn~=1.8",
     "sympy~=1.14",
     "juliacall~=0.9",
+    "pandas~=3.0",
 ]
 
 [project.optional-dependencies]
