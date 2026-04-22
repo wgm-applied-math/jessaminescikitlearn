@@ -102,6 +102,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         return self.f(*x_cols)
 
     def model(self):
+        check_is_fitted(self, "is_fitted")
         return self.model_sym
 
 # From AR's AI generated code:
