@@ -22,14 +22,15 @@ class Regressor(RegressorMixin, BaseEstimator):
             self,
             stop_deadline : Optional[dt.datetime] = None,
             rng_seed : Optional[int] = None,
-            genome_spec : Optional[dict] = None,
+            genome_spec : dict = {},
             lambda_b : float = 1e-10,
             lambda_p : float = 1e-10,
             lambda_op : float = 1e-10,
             num_islands : int = 1,
             stop_threshold : Optional[float] = None,
-            exploration_spec : Optional[dict] = None,
-            simplification_spec : Optional[dict] = None):
+            op_inventory : str = "Polynomial",
+            exploration : dict = {},
+            simplification : Optional[dict] = None):
 
         # The BaseEstimator.get_params function uses python magic
         # to go through the definition of __init__ and fish out
@@ -37,9 +38,9 @@ class Regressor(RegressorMixin, BaseEstimator):
         # into a dict().
         if stop_deadline is None:
             n = dt.datetime.now(tz=None)
-            deltat = dt.timedelta(seconds=45)
+            deltat = dt.timedelta(seconds=20)
             stop_deadline = n + deltat
-        assert isinstance(stop_deadline, dt.datetime)
+        assert isinstance(stop_deadline, dt.datetime), f"Need datetime for deadline, got this: {stop_deadline}"
         # Bizarre: If the number of microseconds is not a
         # multiple of 1000, Julia's DateTime can't handle it
         # because it only represents miliseconds.
@@ -54,8 +55,9 @@ class Regressor(RegressorMixin, BaseEstimator):
         self.lambda_op = float(lambda_op)
         self.num_islands = int(num_islands)
         self.stop_threshold = float(stop_threshold) if stop_threshold is not None else None
-        self.exploration_spec = exploration_spec
-        self.simplification_spec = simplification_spec
+        self.op_inventory = op_inventory
+        self.exploration = exploration
+        self.simplification = simplification
 
     def fit(self, X, y):
         # Capture feature names before check_X_y converts DataFrame to ndarray
@@ -72,15 +74,24 @@ class Regressor(RegressorMixin, BaseEstimator):
         # but the Julia output involves x1, x2, ..., no x0.
         # So we let sympy create x0, but then we skip over it here.
         xv = sympy.symbols(f"x:{1+n_vars}", real=True)[1:]
-        xvd = { str(x): x for x in xv }
+        vd = { str(x): x for x in xv }
+        epsilon = sympy.symbols("ϵ")
+        vd["epsilon"] = epsilon
         self.raw_reg_str = jl.regression_main(X, y, self.get_params())
         # For use during testing:
         #self.raw_reg_str = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
 
-        self.sym = sympy.parsing.sympy_parser.parse_expr(
+        self.sym_init = sympy.parsing.sympy_parser.parse_expr(
             self.raw_reg_str,
-            xvd)
+            vd)
 
+        # Handle Jessamine's use of extended real numbers
+        # where 1/0 = Inf:
+        # In the output, 1/0 is changed into 1/ϵ.
+        # Then we do this limit:
+        self.sym = sympy.limit(self.sym_init, epsilon, 0, dir="+-")
+
+        print(f"Regression.fit: sym: {self.sym}")
         f = sympy.lambdify(xv, self.sym)
         self.f = f
         if self.feature_names is None:
