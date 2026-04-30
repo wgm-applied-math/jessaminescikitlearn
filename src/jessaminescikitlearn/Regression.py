@@ -38,7 +38,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         # into a dict().
         if stop_deadline is None:
             n = dt.datetime.now(tz=None)
-            deltat = dt.timedelta(seconds=20)
+            deltat = dt.timedelta(seconds=40)
             stop_deadline = n + deltat
         assert isinstance(stop_deadline, dt.datetime), f"Need datetime for deadline, got this: {stop_deadline}"
         # Bizarre: If the number of microseconds is not a
