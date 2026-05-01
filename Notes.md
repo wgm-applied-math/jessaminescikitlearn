@@ -1,5 +1,14 @@
 
 Likely bug:
+
+```
+┌ Info: run_regression: Keeping:
+└ { rating = 1.2500001609538332e-9, genome = 1=(mul); 2=(rcp@add 6 10); 3=(mul 11 2); 4=(mul); 5=(rcp@sub 3); 6=(sub 8 11); parameter = [0.0, 0.0, 0.0], extra = Jessamine.BasicLinearModelResult([0.5008970919963682, 1.9999999999970228, 0.9999999999983844, 0.49910290799921836], 0.0) }
+```
+```
+┌ Info: run_regression: Keeping:
+└ { rating = 1.2500000161414714e-9, genome = 1=(add 8); 2=(rcp@sub 11 10 7); 3=(sub 5 2); 4=(add 6); 5=(mul 10 3); 6=(sub 3 5); parameter = [0.0, 0.0, 0.0], extra = Jessamine.BasicLinearModelResult([0.0, -0.49971590909075825, 0.9999999999995837, 0.5002840909089251], 0.0) }
+```
 ```
 [ Info: run_regression: best rating: 1.2500000320479503e-9
 ┌ Info: regression_main: Best:
