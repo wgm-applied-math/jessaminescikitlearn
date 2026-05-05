@@ -57,6 +57,17 @@ exclude = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/jessaminescikitlearn"]
 
+# This seems to fix the problem with stale Manifest.toml files in the test environment.
+# By the way:
+# `hatch test` seems to use the `hatch-test` environment,
+# and it looks for a `run` field to determine what to do.
+# The juliapkg.resolve() doesn't do what needs to be done without `force=True`.
+[tool.hatch.envs.hatch-test.scripts]
+run = [
+    "python -c 'import juliapkg; juliapkg.resolve(force=True)'",
+    "pytest {args:tests}",
+]
+
 # [tool.hatch.envs.types]
 # extra-dependencies = [
 #   "mypy>=1.0.0",
