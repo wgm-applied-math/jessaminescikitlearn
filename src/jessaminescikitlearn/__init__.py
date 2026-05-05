@@ -7,8 +7,8 @@ import os
 os.environ["JULIA_NUM_THREADS"] = "1"
 
 
-from juliacall import Main as jl
 import juliapkg
+from juliacall import Main as jl
 
 jl.seval("""
 using JessamineSciKitLearn
