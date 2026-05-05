@@ -21,7 +21,7 @@ class Regressor(RegressorMixin, BaseEstimator):
     def __init__(
             self,
             stop_deadline : Optional[dt.datetime] = None,
-            rng_seed : Optional[int] = None,
+            random_state : Optional[int] = None,
             genome_spec : dict = {},
             lambda_b : float = 1e-10,
             lambda_p : float = 1e-10,
@@ -48,7 +48,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         # Simplest solution is to zero out the microseconds field.
         stop_deadline = stop_deadline.replace(microsecond=0)
         self.stop_deadline = stop_deadline
-        self.rng_seed = rng_seed
+        self.random_state = random_state
         self.genome_spec = genome_spec
         self.lambda_p = float(lambda_p)
         self.lambda_b = float(lambda_b)

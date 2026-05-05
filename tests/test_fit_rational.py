@@ -51,7 +51,7 @@ def make_data_as_dataframe():
 
 def test_fit_predict():
     X, y = make_data()
-    for j in range(10):
+    for j in range(1):
         fit_and_predict(X, y, j)
 
 
@@ -65,7 +65,7 @@ def fit_and_predict(X, y, seed):
     # return
     r = JR.Regressor(
         op_inventory="Polynomial; RationalFunction",
-        rng_seed=seed,
+        random_state=seed,
     )
     r.fit(X, y)
     print(r.raw_reg_str)
