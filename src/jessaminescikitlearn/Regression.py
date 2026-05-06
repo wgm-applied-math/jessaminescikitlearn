@@ -7,16 +7,30 @@ import numpy as np
 import sklearn
 import sympy
 
-from sklearn.utils import check_X_y, check_array
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import check_is_fitted, validate_data
 from typing import Any, Optional
 
-from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.base import BaseEstimator, RegressorMixin, _fit_context
 
 from . import jl
 
 
 class Regressor(RegressorMixin, BaseEstimator):
+
+    # SKL Used by @_fit_context() for validation
+    _parameter_constraints = {
+        "stop_deadline" : [dt.datetime, None],
+        "random_state" : ["random_state", None],
+        "genome_spec" : [dict],
+        "lambda_b" : [float],
+        "lambda_p" : [float],
+        "lambda_op" : [float],
+        "num_islands" : [int],
+        "stop_threshold" : [float, None],
+        "op_inventory" : [str],
+        "exploration" : [dict],
+        "simplification" : [dict, None],
+        }
 
     def __init__(
             self,
@@ -32,89 +46,141 @@ class Regressor(RegressorMixin, BaseEstimator):
             exploration : dict = {},
             simplification : Optional[dict] = None):
 
-        # The BaseEstimator.get_params function uses python magic
-        # to go through the definition of __init__ and fish out
-        # keyword parameters, which are pulled from attributes of self
-        # into a dict().
-        if stop_deadline is None:
-            n = dt.datetime.now(tz=None)
-            deltat = dt.timedelta(seconds=40)
-            stop_deadline = n + deltat
-        assert isinstance(stop_deadline, dt.datetime), f"Need datetime for deadline, got this: {stop_deadline}"
-        # Bizarre: If the number of microseconds is not a
-        # multiple of 1000, Julia's DateTime can't handle it
-        # because it only represents miliseconds.
-        # So pyconvert fails, no explanation.
-        # Simplest solution is to zero out the microseconds field.
-        stop_deadline = stop_deadline.replace(microsecond=0)
+        # SKL convention: All parameters are stored unmodified in
+        # parallel attributes.
         self.stop_deadline = stop_deadline
         self.random_state = random_state
         self.genome_spec = genome_spec
-        self.lambda_p = float(lambda_p)
-        self.lambda_b = float(lambda_b)
-        self.lambda_op = float(lambda_op)
-        self.num_islands = int(num_islands)
-        self.stop_threshold = float(stop_threshold) if stop_threshold is not None else None
+        self.lambda_p = lambda_p
+        self.lambda_b = lambda_b
+        self.lambda_op = lambda_op
+        self.num_islands = num_islands
+        self.stop_threshold = stop_threshold
         self.op_inventory = op_inventory
         self.exploration = exploration
         self.simplification = simplification
 
-    def fit(self, X, y):
-        # Capture feature names before check_X_y converts DataFrame to ndarray
-        self.feature_names = None
-        if hasattr(X, "columns"):
-            self.feature_names = sympy.symbols(list(X.columns), real=True)
-        X, y = check_X_y(
-            X, y, dtype=np.float64,
-            estimator="Jessamine")
-        n_points, n_vars = X.shape
-        self.n_vars = n_vars
 
-        # The 1+ here is because symbols() creates x0, x1, x2...
-        # but the Julia output involves x1, x2, ..., no x0.
-        # So we let sympy create x0, but then we skip over it here.
-        xv = sympy.symbols(f"x:{1+n_vars}", real=True)[1:]
+    def get_validated_params(self):
+        # The BaseEstimator.get_params function uses python magic
+        # to go through the definition of __init__ and fish out
+        # keyword parameters, which are pulled from attributes of self
+        # into a dict().
+
+        self._validate_params()
+        prespec = self.get_params()
+
+        if prespec["stop_deadline"] is None:
+            n = dt.datetime.now(tz=None)
+            deltat = dt.timedelta(seconds=40)
+            prespec["stop_deadline"] = n + deltat
+
+        # Bizarre: If the number of microseconds is not a
+        # multiple of 1000, Julia's DateTime can't handle it
+        # because it only represents miliseconds.
+        # So in Julia, PythonCall.pyconvert fails, no explanation.
+        # Simplest solution is to zero out the microseconds field.
+        prespec["stop_deadline"] = prespec["stop_deadline"].replace(microsecond=0)
+
+        # Heuristic:
+        # If there are n inputs
+        # set up 1.5 n outputs
+        # and 0.5 n scratch
+        assert self.n_features_in_ > 0
+        n = self.n_features_in_
+        g_spec = prespec["genome_spec"]
+        g_spec["input_size"] = n
+        g_spec.setdefault("output_size", n + (1 + n) // 2)
+        g_spec.setdefault("scratch_size", (1 + n) // 2)
+
+        return prespec
+
+    @_fit_context(prefer_skip_nested_validation=True)
+    def fit(self, X, y):
+        print("in jessaminescikitlearn.Regression.Regressor.fit: X and y are")
+        print(X)
+        print(y)
+
+        # SKL Sets self.n_features_in_ and self.feature_names_in_
+        # if X is a table of some kind.
+        # So this has to be done before...
+        X, y = validate_data(self,
+            X, y,
+            reset=True,
+            dtype=np.float64,
+            y_numeric=True)
+
+        assert X.shape[1] == self.n_features_in_
+
+        # ... get_validated_params(), which
+        # uses self.n_features_in_.
+        prespec = self.get_validated_params()
+
+        # validate_data is supposed to set feature_names_in_.
+        # If that happened, X is a DataFrame or similar, and the
+        # columns should have names appropriate for a symbol.
+        if (hasattr(self, "feature_names_in_")
+            and self.feature_names_in_ is not None):
+            self.feature_names_in_sym_ = sympy.symbols(
+                list(self.feature_names_in_),
+                real=True)
+        else:
+            self.feature_names_in_sym_ = None
+
+        # The 1+ here is because symbols() uses python's range convention,
+        # so 1:5 means 1 <= j < 5.
+        n_vars = self.n_features_in_
+        assert n_vars is not None
+        xv = sympy.symbols(f"x1:{1+n_vars}", real=True)
         vd = { str(x): x for x in xv }
         epsilon = sympy.symbols("ϵ")
         vd["epsilon"] = epsilon
-        self.raw_reg_str = jl.regression_main(X, y, self.get_params())
-        # For use during testing:
-        #self.raw_reg_str = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
 
-        self.sym_init = sympy.parsing.sympy_parser.parse_expr(
-            self.raw_reg_str,
+        # Turn the crank
+        self.raw_reg_str_ = jl.regression_main(X, y, prespec)
+
+        # For use during testing:
+        #self.raw_reg_str_ = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
+
+        self.sym_init_ = sympy.parsing.sympy_parser.parse_expr(
+            self.raw_reg_str_,
             vd)
 
         # Handle Jessamine's use of extended real numbers
         # where 1/0 = Inf:
-        # In the output, 1/0 is changed into 1/ϵ.
+        # In the Julia result string, 1/0 is changed into 1/epsilon,
+        # and the parser converts `epsilon` into `ϵ`.
         # Then we do this limit:
-        self.sym = sympy.limit(self.sym_init, epsilon, 0, dir="+-")
+        self.sym_ = sympy.limit(self.sym_init_, epsilon, 0, dir="+-")
 
-        print(f"Regression.fit: sym: {self.sym}")
-        f = sympy.lambdify(xv, self.sym)
-        self.f = f
-        if self.feature_names is None:
-            self.feature_names = xv
-            self.model_sym = self.sym
+        print(f"Regression.fit: sym: {self.sym_}")
+        f = sympy.lambdify(xv, self.sym_)
+        self.f_ = f
+        if self.feature_names_in_sym_ is None:
+            # Vanilla feature names, no need to substitute
+            self.feature_names_in_sym_ = xv
+            self.model_sym_ = self.sym_
         else:
-            translation = [ (xv[j], self.feature_names[j])
+            # Columns have symbolic names, need to substitute
+            translation = [ (xv[j], self.feature_names_in_sym_[j])
                             for j in range(n_vars) ]
-            self.model_sym = self.sym.subs(translation)
-        self.is_fitted = True
+            self.model_sym_ = self.sym_.subs(translation)
+
+        # SKL: fit() must return self
+        return self
 
     def predict(self, X):
-        check_is_fitted(self, "is_fitted")
-        X = check_array(
-            X, dtype=np.float64,
-            estimator="Jessamine")
-        assert self.n_vars == X.shape[1]
+        check_is_fitted(self)
+        X = validate_data(self,
+            X, "no_validation",
+            reset=False,
+            dtype=np.float64)
         x_cols = np.unstack(X, axis=1)
-        return self.f(*x_cols)
+        return self.f_(*x_cols)
 
     def model(self):
-        check_is_fitted(self, "is_fitted")
-        return self.model_sym
+        check_is_fitted(self)
+        return self.model_sym_
 
 # From AR's AI generated code:
 

@@ -55,21 +55,20 @@ def test_fit_predict():
         fit_and_predict(X, y, j)
 
 
-# def test_fit_predict_dataframe():
-#     X, y = make_data_as_dataframe()
-#     fit_and_predict(X, y)
+def test_fit_predict_dataframe():
+    X, y = make_data_as_dataframe()
+    for j in range(1):
+        fit_and_predict(X, y, j)
 
 
-def fit_and_predict(X, y, seed):
-    # disable for a moment
-    # return
+def fit_and_predict(X, y, seed=0x918273645):
     r = JR.Regressor(
         op_inventory="Polynomial; RationalFunction",
         random_state=seed,
     )
     r.fit(X, y)
-    print(r.raw_reg_str)
-    print(r.sym)
+    print(r.raw_reg_str_)
+    print(r.sym_)
     print(r.model())
     yHat = r.predict(X)
     discrepancy = sum((yHat - y) ** 2)

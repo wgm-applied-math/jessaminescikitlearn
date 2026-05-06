@@ -9,9 +9,6 @@ import numpy as np
 from scipy import stats
 import sympy
 
-print(dir())
-print(__package__)
-
 import jessaminescikitlearn
 import jessaminescikitlearn.Regression as JR
 
@@ -31,12 +28,20 @@ def make_data():
     # which means x1 and x2 have to start as vectors
     x1 = x1_dist.sample(shape=(n_points,), rng=rng)
     x2 = x2_dist.sample(shape=(n_points,), rng=rng)
+    # Extra column, which Jessamine should figure out it should ignore
+    x3 = x2_dist.sample(shape=(n_points,), rng=rng)
     y = f(x1, x2)
     # This is how to stack x1 and x2 as columns
     # into a matrix in column-tabular form
     X = np.block(
         [x1.reshape(n_points,1),
-         x2.reshape(n_points,1)])
+         x2.reshape(n_points,1),
+         x3.reshape(n_points,1)])
+    assert X.shape[0] == n_points
+    assert X.shape[1] == 3
+    # print("in test_fit.make_data")
+    # print(X)
+    # print(y)
     return (X, y)
 
 
@@ -45,7 +50,8 @@ def make_data_as_dataframe():
     y_s = pd.Series(y, name="y")
     u = pd.Series(X[:,0], name="u")
     v = pd.Series(X[:,1], name="v")
-    X_df = pd.DataFrame({ "u": u, "v": v })
+    w = pd.Series(X[:,2], name="w")
+    X_df = pd.DataFrame({ "u": u, "v": v, "w": w })
     return (X_df, y_s)
 
 
@@ -73,10 +79,10 @@ def fit_and_predict(X, y):
     # return
     r = JR.Regressor()
     r.fit(X, y)
-    print(r.raw_reg_str)
-    print(r.sym)
+    print(r.raw_reg_str_)
+    print(r.sym_)
     print(r.model())
     yHat = r.predict(X)
     discrepancy = sum((yHat - y)**2)
-    print(f"test_fit_predict: discrepancy = {discrepancy}")
+    print(f"fit_and_predict: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
