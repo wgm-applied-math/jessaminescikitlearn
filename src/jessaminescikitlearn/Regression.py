@@ -88,10 +88,14 @@ class Regressor(RegressorMixin, BaseEstimator):
         # and 0.5 n scratch
         assert self.n_features_in_ > 0
         n = self.n_features_in_
-        g_spec = prespec["genome_spec"]
-        g_spec["input_size"] = n
-        g_spec.setdefault("output_size", n + (1 + n) // 2)
-        g_spec.setdefault("scratch_size", (1 + n) // 2)
+        # SKL We can't modify any part of any given parameters,
+        # so we need to copy the genome spec dictionary rather
+        # than change it in place.
+        g_spec_defaults = {
+            "input_size": n,
+            "output_size": n + (1 + n) // 2,
+            "scratch_size": (1 + n) // 2}
+        prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
 
         return prespec
 
