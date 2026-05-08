@@ -51,14 +51,12 @@ def make_data_as_dataframe():
 
 def test_fit_predict():
     X, y = make_data()
-    for j in range(1):
-        fit_and_predict(X, y, j)
+    return fit_and_predict(X, y)
 
 
 def test_fit_predict_dataframe():
     X, y = make_data_as_dataframe()
-    for j in range(1):
-        fit_and_predict(X, y, j)
+    return fit_and_predict(X, y)
 
 
 def fit_and_predict(X, y, seed=0x918273645):
@@ -74,3 +72,4 @@ def fit_and_predict(X, y, seed=0x918273645):
     discrepancy = sum((yHat - y) ** 2)
     print(f"test_fit_predict: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
+    return r
