@@ -46,7 +46,7 @@ dependencies:
   - pip
 ```
 
-and create the environment with:
+and create the practice environment with:
 
 ```sh
 conda config --add channels conda-forge
@@ -62,5 +62,19 @@ Then things seem to mostly work
 There is a `juliaup` package within `conda`.
 
 
+# Setting up `srbench`
 
+Clone the repository, switch to the `srbench_2025` branch.
 
+In the root directory, there's a `conda` environment file, so:
+
+```sh
+conda create --file base_environment.yml --name srbench_2025
+```
+
+_Note:_ In `docs/user_guide.md` this file is referred to as `environment.yml` and the stated `conda` command doesn't include a name.
+
+_Note:_ I had to change `base_environment.yml` to not install `pmlb` via GitHub, but just plain `pip install pmlb`.
+The GitHub repository doesn't have enough credits to allow for `git` to do LFS smudging.
+
+_Note:_ In `docs/user_guide.md` it says to explicitly clone the `pmlb` repository from GitHub, which again, doesn't work because of LFS.
