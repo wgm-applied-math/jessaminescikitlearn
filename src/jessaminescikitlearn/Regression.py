@@ -21,7 +21,7 @@ class Regressor(RegressorMixin, BaseEstimator):
     _parameter_constraints = {
         "stop_deadline" : [dt.datetime, None],
         "random_state" : ["random_state", None],
-        "genome_spec" : [dict],
+        "genome_spec" : [dict, None],
         "lambda_b" : [float],
         "lambda_p" : [float],
         "lambda_op" : [float],
@@ -36,7 +36,7 @@ class Regressor(RegressorMixin, BaseEstimator):
             self,
             stop_deadline : Optional[dt.datetime] = None,
             random_state : Optional[int] = None,
-            genome_spec : dict = {},
+            genome_spec : Optional[dict] = None,
             lambda_b : float = 1e-10,
             lambda_p : float = 1e-10,
             lambda_op : float = 1e-10,
@@ -46,8 +46,16 @@ class Regressor(RegressorMixin, BaseEstimator):
             exploration : dict = {},
             simplification : Optional[dict] = None):
 
-        # SKL convention: All parameters are stored unmodified in
+        # SKL conventions:
+        #
+        # - All parameters are stored unmodified in
         # parallel attributes.
+        #
+        # - When instantiating with no given parameters, __init__
+        # is not supposed to use a dict as a default value, I
+        # assume for immutability reasons.  So genome_spec,
+        # etc. have to default to None rather than {}.
+
         self.stop_deadline = stop_deadline
         self.random_state = random_state
         self.genome_spec = genome_spec
@@ -98,7 +106,10 @@ class Regressor(RegressorMixin, BaseEstimator):
             "input_size": n,
             "output_size": n + (1 + n) // 2,
             "scratch_size": (1 + n) // 2}
-        prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
+        if prespec["genome_spec"] is None:
+            prespec["genome_spec"] = g_spec_defaults
+        else:
+            prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
 
         return prespec
 
