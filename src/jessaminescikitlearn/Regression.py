@@ -209,7 +209,7 @@ class Regressor(RegressorMixin, BaseEstimator):
     def __getstate__(self):
         state = self.__dict__.copy()
         # Remove un-pickle-able attributes
-        del state["f_"]
+        state.pop("f_", None)
         return state
 
     def __setstate__(self, state):
