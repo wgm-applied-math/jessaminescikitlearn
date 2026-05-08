@@ -60,6 +60,9 @@ class Regressor(RegressorMixin, BaseEstimator):
         self.exploration = exploration
         self.simplification = simplification
 
+        # For future compatibility, include a version
+        self._version = (1,0,0)
+
 
     def get_validated_params(self):
         # The BaseEstimator.get_params function uses python magic
@@ -156,10 +159,9 @@ class Regressor(RegressorMixin, BaseEstimator):
         # and the parser converts `epsilon` into `ϵ`.
         # Then we do this limit:
         self.sym_ = sympy.limit(self.sym_init_, epsilon, 0, dir="+-")
+        self.xv_ = xv
 
         print(f"Regression.fit: sym: {self.sym_}")
-        f = sympy.lambdify(xv, self.sym_)
-        self.f_ = f
         if self.feature_names_in_sym_ is None:
             # Vanilla feature names, no need to substitute
             self.feature_names_in_sym_ = xv
@@ -173,6 +175,12 @@ class Regressor(RegressorMixin, BaseEstimator):
         # SKL: fit() must return self
         return self
 
+    def get_f(self):
+        if not hasattr(self, "f_"):
+            self.f_ = sympy.lambdify(self.xv_, self.sym_)
+        return self.f_
+
+
     def predict(self, X):
         check_is_fitted(self)
         X = validate_data(self,
@@ -180,11 +188,23 @@ class Regressor(RegressorMixin, BaseEstimator):
             reset=False,
             dtype=np.float64)
         x_cols = np.unstack(X, axis=1)
-        return self.f_(*x_cols)
+
+        return self.get_f()(*x_cols)
 
     def model(self):
         check_is_fitted(self)
         return self.model_sym_
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Remove un-pickle-able attributes
+        del state["f_"]
+        return state
+
+    def __setstate__(self, state):
+        # Restore pickle-able attributes
+        self.__dict__.update(state)
+
 
 # From AR's AI generated code:
 
