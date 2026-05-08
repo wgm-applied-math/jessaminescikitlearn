@@ -2,9 +2,10 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
+#import pytest
 
 import pandas as pd
+import pickle
 import numpy as np
 from scipy import stats
 import sympy
@@ -66,13 +67,22 @@ def test_apply():
     print(f"test_apply: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
 
-def test_fit_predict():
+def test_fit_predict_pickle():
     X, y = make_data()
-    fit_and_predict(X, y)
+    r = fit_and_predict(X, y)
+
+    # Test pickle
+    r_pickled = pickle.dumps(r)
+    r_unpickled = pickle.loads(r_pickled)
+    yHat = r.predict(X)
+    discrepancy = sum((yHat - y)**2)
+    assert discrepancy < 1e-10
+
+    return r
 
 def test_fit_predict_dataframe():
     X, y = make_data_as_dataframe()
-    fit_and_predict(X, y)
+    return fit_and_predict(X, y)
 
 def fit_and_predict(X, y):
     # disable for a moment
@@ -86,3 +96,4 @@ def fit_and_predict(X, y):
     discrepancy = sum((yHat - y)**2)
     print(f"fit_and_predict: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
+    return r
