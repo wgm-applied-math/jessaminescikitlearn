@@ -174,6 +174,8 @@ class Regressor(RegressorMixin, BaseEstimator):
         # Then we do this limit:
         self.sym_ = sympy.limit(self.sym_init_, epsilon, 0, dir="+-")
         self.xv_ = xv
+        # SKL See comment in set_f().
+        self.set_f()
 
         print(f"Regression.fit: sym: {self.sym_}")
         if self.feature_names_in_sym_ is None:
@@ -189,11 +191,14 @@ class Regressor(RegressorMixin, BaseEstimator):
         # SKL: fit() must return self
         return self
 
-    def get_f(self):
+    def set_f(self):
+        # SKL predict() is not allowed to modify self's
+        # attributes.  So we have to cache the lambdified f in
+        # fit() and restore it during unpickling.
+        # Hence this method.
         if not hasattr(self, "f_"):
             self.f_ = sympy.lambdify(self.xv_, self.sym_)
         return self.f_
-
 
     def predict(self, X):
         check_is_fitted(self)
@@ -203,7 +208,7 @@ class Regressor(RegressorMixin, BaseEstimator):
             dtype=np.float64)
         x_cols = np.unstack(X, axis=1)
 
-        return self.get_f()(*x_cols)
+        return self.f_(*x_cols)
 
     def model(self):
         check_is_fitted(self)
@@ -218,6 +223,8 @@ class Regressor(RegressorMixin, BaseEstimator):
     def __setstate__(self, state):
         # Restore pickle-able attributes
         self.__dict__.update(state)
+        # SKL See comment in set_f()
+        self.set_f()
 
 
 # From AR's AI generated code:
