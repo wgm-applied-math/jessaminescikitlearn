@@ -28,7 +28,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         "num_islands" : [int],
         "stop_threshold" : [float, None],
         "op_inventory" : [str],
-        "exploration" : [dict],
+        "exploration" : [dict, None],
         "simplification" : [dict, None],
         }
 
@@ -43,7 +43,7 @@ class Regressor(RegressorMixin, BaseEstimator):
             num_islands : int = 1,
             stop_threshold : Optional[float] = None,
             op_inventory : str = "Polynomial",
-            exploration : dict = {},
+            exploration : Optional[dict] = None,
             simplification : Optional[dict] = None):
 
         # SKL conventions:
@@ -99,6 +99,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         # and 0.5 n scratch
         assert self.n_features_in_ > 0
         n = self.n_features_in_
+
         # SKL We can't modify any part of any given parameters,
         # so we need to copy the genome spec dictionary rather
         # than change it in place.
@@ -106,11 +107,10 @@ class Regressor(RegressorMixin, BaseEstimator):
             "input_size": n,
             "output_size": n + (1 + n) // 2,
             "scratch_size": (1 + n) // 2}
-        if prespec["genome_spec"] is None:
-            prespec["genome_spec"] = g_spec_defaults
-        else:
-            prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
+        prespec.setdefault("genome_spec", {})
+        prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
 
+        prespec.setdefault("exploration", {})
         return prespec
 
     @_fit_context(prefer_skip_nested_validation=True)
