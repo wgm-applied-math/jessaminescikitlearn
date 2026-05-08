@@ -99,7 +99,6 @@ class Regressor(RegressorMixin, BaseEstimator):
         # and 0.5 n scratch
         assert self.n_features_in_ > 0
         n = self.n_features_in_
-
         # SKL We can't modify any part of any given parameters,
         # so we need to copy the genome spec dictionary rather
         # than change it in place.
@@ -107,10 +106,14 @@ class Regressor(RegressorMixin, BaseEstimator):
             "input_size": n,
             "output_size": n + (1 + n) // 2,
             "scratch_size": (1 + n) // 2}
-        prespec.setdefault("genome_spec", {})
-        prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
+        if prespec["genome_spec"] is None:
+            prespec["genome_spec"] = g_spec_defaults
+        else:
+            prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
 
-        prespec.setdefault("exploration", {})
+        if prespec["exploration"] is None:
+            prespec["exploration"] = {}
+
         return prespec
 
     @_fit_context(prefer_skip_nested_validation=True)
