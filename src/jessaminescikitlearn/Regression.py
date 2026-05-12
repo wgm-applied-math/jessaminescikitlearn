@@ -133,10 +133,16 @@ class Regressor(RegressorMixin, BaseEstimator):
         # into a dict().
 
         self._validate_params()
-        prespec = self.get_params()
+        prespec0 = self.get_params()
+
+        # Just leave out anything None.
+        prespec = {}
+        for k, v in prespec0.items():
+            if v is not None:
+                prespec[k] = v
 
         # There has to be a stop deadline
-        if prespec["stop_deadline"] is None:
+        if not "stop_deadline" in prespec or prespec["stop_deadline"] is None:
             prespec["stop_deadline"] = dt.datetime.now(tz=None) + dt.timedelta(
                 seconds=30
             )
@@ -154,20 +160,17 @@ class Regressor(RegressorMixin, BaseEstimator):
         # and 0.5 n scratch
         assert self.n_features_in_ > 0
         n = self.n_features_in_
-        # SKL We can't modify any part of any given parameters,
-        # so we need to copy the genome spec dictionary rather
-        # than change it in place.
-        g_spec_defaults = {
+
+        # Genome
+        # Defaults
+        g_spec = {
             "input_size": n,
             "output_size": n + (1 + n) // 2,
             "scratch_size": (1 + n) // 2,
+            "parameter_size": (1 + n) // 2,
         }
-        prespec = g_spec_defaults | prespec
-
-        # Genome
-        g_spec = {}
         for k in ["input_size", "output_size", "scratch_size", "parameter_size"]:
-            if k in prespec:
+            if k in prespec and prespec[k] is not None:
                 g_spec[k] = prespec[k]
         prespec["genome"] = g_spec
 
@@ -197,24 +200,15 @@ class Regressor(RegressorMixin, BaseEstimator):
                 s_spec[k] = prespec[k]
 
         # Exploration
-        prespec["exporation"] = m_spec | s_spec
-
-        # Simplification
-        if prespec["simplify"]:
-            simp_m_spec = m_spec.copy()
-            simp_m_spec["p_duplicate_index"] = 0.0
-            simp_m_spec["p_duplicate_instruction"] = 0.0
-            prespec["simplification"] = simp_m_spec
-        else:
-            prespec["simplification"] = None
+        prespec["exploration"] = m_spec | s_spec
 
         return prespec
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y):
-        print("in jessaminescikitlearn.Regression.Regressor.fit: X and y are")
-        print(X)
-        print(y)
+        # print("in jessaminescikitlearn.Regression.Regressor.fit: X and y are")
+        # print(X)
+        # print(y)
 
         # SKL Sets self.n_features_in_ and self.feature_names_in_
         # if X is a table of some kind.
