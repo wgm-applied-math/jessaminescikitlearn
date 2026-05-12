@@ -62,6 +62,7 @@ def do_fit_predict_dataframe():
     X, y = make_data_as_dataframe()
     return fit_and_predict(X, y)
 
+
 def test_fit_predict_dataframe():
     do_fit_predict_dataframe()
 

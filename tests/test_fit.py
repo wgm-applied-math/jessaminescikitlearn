@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-#import pytest
+# import pytest
 
 import pandas as pd
 import pickle
@@ -13,8 +13,10 @@ import sympy
 import jessaminescikitlearn
 import jessaminescikitlearn.Regression as JR
 
+
 def f(x1, x2):
-    return 2 + 3 * x1 + 3* x2 - 3 * x1 * x2
+    return 2 + 3 * x1 + 3 * x2 - 3 * x1 * x2
+
 
 def make_data():
     x1_dist = stats.Normal(mu=0.0, sigma=1.0)
@@ -35,9 +37,8 @@ def make_data():
     # This is how to stack x1 and x2 as columns
     # into a matrix in column-tabular form
     X = np.block(
-        [x1.reshape(n_points,1),
-         x2.reshape(n_points,1),
-         x3.reshape(n_points,1)])
+        [x1.reshape(n_points, 1), x2.reshape(n_points, 1), x3.reshape(n_points, 1)]
+    )
     assert X.shape[0] == n_points
     assert X.shape[1] == 3
     # print("in test_fit.make_data")
@@ -49,10 +50,10 @@ def make_data():
 def make_data_as_dataframe():
     X, y = make_data()
     y_s = pd.Series(y, name="y")
-    u = pd.Series(X[:,0], name="u")
-    v = pd.Series(X[:,1], name="v")
-    w = pd.Series(X[:,2], name="w")
-    X_df = pd.DataFrame({ "u": u, "v": v, "w": w })
+    u = pd.Series(X[:, 0], name="u")
+    v = pd.Series(X[:, 1], name="v")
+    w = pd.Series(X[:, 2], name="w")
+    X_df = pd.DataFrame({"u": u, "v": v, "w": w})
     return (X_df, y_s)
 
 
@@ -62,10 +63,11 @@ def test_apply():
     x0, x1, x2 = sympy.symbols("x:3")
     f = sympy.lambdify([x1, x2], sym)
     X, y = make_data()
-    yHat = f(X[:,0], X[:,1])
-    discrepancy = sum((yHat - y)**2)
+    yHat = f(X[:, 0], X[:, 1])
+    discrepancy = sum((yHat - y) ** 2)
     print(f"test_apply: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
+
 
 def do_fit_predict_pickle():
     X, y = make_data()
@@ -75,20 +77,24 @@ def do_fit_predict_pickle():
     r_pickled = pickle.dumps(r)
     r_unpickled = pickle.loads(r_pickled)
     yHat = r.predict(X)
-    discrepancy = sum((yHat - y)**2)
+    discrepancy = sum((yHat - y) ** 2)
     assert discrepancy < 1e-10
     return r
+
 
 # pytest: test_xxx functions should return None.
 def test_fit_predict_pickle():
     do_fit_predict_pickle()
 
+
 def do_fit_predict_dataframe():
     X, y = make_data_as_dataframe()
     return fit_and_predict(X, y)
 
+
 def test_fit_predict_dataframe():
     do_fit_predict_dataframe()
+
 
 def fit_and_predict(X, y):
 
@@ -102,7 +108,7 @@ def fit_and_predict(X, y):
     print(r.sym_)
     print(r.model())
     yHat = r.predict(X)
-    discrepancy = sum((yHat - y)**2)
+    discrepancy = sum((yHat - y) ** 2)
     print(f"fit_and_predict: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
     return r
