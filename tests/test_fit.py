@@ -67,7 +67,7 @@ def test_apply():
     print(f"test_apply: discrepancy = {discrepancy}")
     assert discrepancy < 1e-10
 
-def test_fit_predict_pickle():
+def do_fit_predict_pickle():
     X, y = make_data()
     r = fit_and_predict(X, y)
 
@@ -77,17 +77,26 @@ def test_fit_predict_pickle():
     yHat = r.predict(X)
     discrepancy = sum((yHat - y)**2)
     assert discrepancy < 1e-10
-
     return r
 
-def test_fit_predict_dataframe():
+# pytest: test_xxx functions should return None.
+def test_fit_predict_pickle():
+    do_fit_predict_pickle()
+
+def do_fit_predict_dataframe():
     X, y = make_data_as_dataframe()
     return fit_and_predict(X, y)
 
+def test_fit_predict_dataframe():
+    do_fit_predict_dataframe()
+
 def fit_and_predict(X, y):
-    # disable for a moment
-    # return
-    r = JR.Regressor()
+
+    # Just override a few things to see if it works:
+    r = JR.Regressor(
+        simplify=False,
+        p_duplicate_instruction=0.01,
+    )
     r.fit(X, y)
     print(r.raw_reg_str_)
     print(r.sym_)
