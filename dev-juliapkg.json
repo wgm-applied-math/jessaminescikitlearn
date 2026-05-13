@@ -3,18 +3,18 @@
   "packages": {
     "Jessamine": {
       "uuid": "2807b6de-c4a7-4d42-9dc5-a90bb38e3ffd",
-      "url": "https://github.com/wgm-applied-math/Jessamine.jl.git",
-      "rev": "v0.3.0"
+      "path": "../Jessamine.jl",
+      "dev": true
     },
     "JessamineSciKitLearn": {
       "uuid": "b1d08412-962e-4858-8b05-b07944b12f63",
-      "url": "https://github.com/wgm-applied-math/JessamineSciKitLearn.jl.git",
-      "rev": "v0.3.0"
+      "path": "../JessamineSciKitLearn.jl",
+      "dev": true
     },
     "JessamineSymbolics": {
       "uuid": "d293f0e1-bc3b-41ab-aeda-c552fb2511c4",
-      "url": "https://github.com/wgm-applied-math/JessamineSymbolics.jl.git",
-      "rev": "v0.3.0"
+      "path": "../JessamineSymbolics.jl",
+      "dev": true
     }
   }
 }
