@@ -19,32 +19,69 @@ class Regressor(RegressorMixin, BaseEstimator):
 
     # SKL Used by @_fit_context() for validation
     _parameter_constraints = {
-        "stop_deadline" : [dt.datetime, None],
-        "random_state" : ["random_state", None],
-        "genome_spec" : [dict, None],
-        "lambda_b" : [float],
-        "lambda_p" : [float],
-        "lambda_op" : [float],
-        "num_islands" : [int],
-        "stop_threshold" : [float, None],
-        "op_inventory" : [str],
-        "exploration" : [dict, None],
-        "simplification" : [dict, None],
-        }
+        "random_state": ["random_state", None],
+        # Genome spec
+        "output_size": [int, None],
+        "scratch_size": [int, None],
+        "parameter_size": [int, None],
+        "num_time_steps": [int, None],
+        # Mutation spec
+        "op_inventory": [str],
+        "p_mutate_op": [float, None],
+        "p_mutate_index": [float, None],
+        "p_duplicate_index": [float, None],
+        "p_delete_index": [float, None],
+        "p_duplicate_instruction": [float, None],
+        "p_delete_instruction": [float, None],
+        "p_hop_instruction": [float, None],
+        # Selection spec
+        "num_to_keep": [int, None],
+        "num_to_generate": [int, None],
+        "p_take_better": [float, None],
+        "p_take_very_best": [float, None],
+        # Regularization
+        "lambda_b": [float, None],
+        "lambda_p": [float, None],
+        "lambda_op": [float, None],
+        # Search
+        "stop_deadline": [dt.datetime, None],
+        "num_islands": [int, None],
+        "stop_threshold": [float, None],
+        "simplify": [bool],
+    }
 
     def __init__(
-            self,
-            stop_deadline : Optional[dt.datetime] = None,
-            random_state : Optional[int] = None,
-            genome_spec : Optional[dict] = None,
-            lambda_b : float = 1e-10,
-            lambda_p : float = 1e-10,
-            lambda_op : float = 1e-10,
-            num_islands : int = 1,
-            stop_threshold : Optional[float] = None,
-            op_inventory : str = "Polynomial",
-            exploration : Optional[dict] = None,
-            simplification : Optional[dict] = None):
+        self,
+        random_state: Optional[int] = None,
+        # Genome spec
+        output_size: Optional[int] = None,
+        scratch_size: Optional[int] = None,
+        parameter_size: Optional[int] = None,
+        num_time_steps: Optional[int] = None,
+        # Mutation spec
+        op_inventory: str = "Polynomial",
+        p_mutate_op: Optional[float] = None,
+        p_mutate_index: Optional[float] = None,
+        p_duplicate_index: Optional[float] = None,
+        p_delete_index: Optional[float] = None,
+        p_duplicate_instruction: Optional[float] = None,
+        p_delete_instruction: Optional[float] = None,
+        p_hop_instruction: Optional[float] = None,
+        # Selection spec
+        num_to_keep: Optional[int] = None,
+        num_to_generate: Optional[int] = None,
+        p_take_better: Optional[float] = None,
+        p_take_very_best: Optional[float] = None,
+        # Regularization
+        lambda_b: Optional[float] = None,
+        lambda_p: Optional[float] = None,
+        lambda_op: Optional[float] = None,
+        # Search
+        stop_deadline: Optional[dt.datetime] = None,
+        num_islands: Optional[int] = None,
+        stop_threshold: Optional[float] = None,
+        simplify: bool = True,
+    ):
 
         # SKL conventions:
         #
@@ -56,21 +93,38 @@ class Regressor(RegressorMixin, BaseEstimator):
         # assume for immutability reasons.  So genome_spec,
         # etc. have to default to None rather than {}.
 
-        self.stop_deadline = stop_deadline
         self.random_state = random_state
-        self.genome_spec = genome_spec
+        # Genome spec
+        self.output_size = output_size
+        self.scratch_size = scratch_size
+        self.parameter_size = parameter_size
+        self.num_time_steps = num_time_steps
+        # Mutation spec
+        self.op_inventory = op_inventory
+        self.p_mutate_op = p_mutate_op
+        self.p_mutate_index = p_mutate_index
+        self.p_duplicate_index = p_duplicate_index
+        self.p_delete_index = p_delete_index
+        self.p_duplicate_instruction = p_duplicate_instruction
+        self.p_delete_instruction = p_delete_instruction
+        self.p_hop_instruction = p_hop_instruction
+        # Selection spec
+        self.num_to_keep = num_to_keep
+        self.num_to_generate = num_to_generate
+        self.p_take_better = p_take_better
+        self.p_take_very_best = p_take_very_best
+        # Regularization
         self.lambda_p = lambda_p
         self.lambda_b = lambda_b
         self.lambda_op = lambda_op
+        # Search
+        self.stop_deadline = stop_deadline
         self.num_islands = num_islands
         self.stop_threshold = stop_threshold
-        self.op_inventory = op_inventory
-        self.exploration = exploration
-        self.simplification = simplification
+        self.simplify = simplify
 
         # For future compatibility, include a version
-        self._version = (1,0,0)
-
+        self._version = (1, 0, 0)
 
     def get_validated_params(self):
         # The BaseEstimator.get_params function uses python magic
@@ -79,12 +133,19 @@ class Regressor(RegressorMixin, BaseEstimator):
         # into a dict().
 
         self._validate_params()
-        prespec = self.get_params()
+        prespec0 = self.get_params()
 
-        if prespec["stop_deadline"] is None:
-            n = dt.datetime.now(tz=None)
-            deltat = dt.timedelta(seconds=40)
-            prespec["stop_deadline"] = n + deltat
+        # Just leave out anything None.
+        prespec = {}
+        for k, v in prespec0.items():
+            if v is not None:
+                prespec[k] = v
+
+        # There has to be a stop deadline
+        if not "stop_deadline" in prespec or prespec["stop_deadline"] is None:
+            prespec["stop_deadline"] = dt.datetime.now(tz=None) + dt.timedelta(
+                seconds=30
+            )
 
         # Bizarre: If the number of microseconds is not a
         # multiple of 1000, Julia's DateTime can't handle it
@@ -99,37 +160,60 @@ class Regressor(RegressorMixin, BaseEstimator):
         # and 0.5 n scratch
         assert self.n_features_in_ > 0
         n = self.n_features_in_
-        # SKL We can't modify any part of any given parameters,
-        # so we need to copy the genome spec dictionary rather
-        # than change it in place.
-        g_spec_defaults = {
+
+        # Genome
+        # Defaults
+        g_spec = {
             "input_size": n,
             "output_size": n + (1 + n) // 2,
-            "scratch_size": (1 + n) // 2}
-        if prespec["genome_spec"] is None:
-            prespec["genome_spec"] = g_spec_defaults
-        else:
-            prespec["genome_spec"] = g_spec_defaults | prespec["genome_spec"]
+            "scratch_size": (1 + n) // 2,
+            "parameter_size": (1 + n) // 2,
+        }
+        for k in ["input_size", "output_size", "scratch_size", "parameter_size"]:
+            if k in prespec and prespec[k] is not None:
+                g_spec[k] = prespec[k]
+        prespec["genome"] = g_spec
 
-        if prespec["exploration"] is None:
-            prespec["exploration"] = {}
+        # Mutation
+        m_spec = {}
+        for k in [
+            "p_mutate_op",
+            "p_mutate_index",
+            "p_duplicate_index",
+            "p_delete_index",
+            "p_duplicate_instruction",
+            "p_delete_instruction",
+            "p_hop_instruction",
+        ]:
+            if k in prespec and prespec[k] is not None:
+                m_spec[k] = prespec[k]
+
+        # Selection
+        s_spec = {}
+        for k in [
+            "num_to_keep",
+            "num_to_generate",
+            "p_take_better",
+            "p_take_very_best",
+        ]:
+            if k in prespec and prespec[k] is not None:
+                s_spec[k] = prespec[k]
+
+        # Exploration
+        prespec["exploration"] = m_spec | s_spec
 
         return prespec
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y):
-        print("in jessaminescikitlearn.Regression.Regressor.fit: X and y are")
-        print(X)
-        print(y)
+        # print("in jessaminescikitlearn.Regression.Regressor.fit: X and y are")
+        # print(X)
+        # print(y)
 
         # SKL Sets self.n_features_in_ and self.feature_names_in_
         # if X is a table of some kind.
         # So this has to be done before...
-        X, y = validate_data(self,
-            X, y,
-            reset=True,
-            dtype=np.float64,
-            y_numeric=True)
+        X, y = validate_data(self, X, y, reset=True, dtype=np.float64, y_numeric=True)
 
         assert X.shape[1] == self.n_features_in_
 
@@ -140,11 +224,10 @@ class Regressor(RegressorMixin, BaseEstimator):
         # validate_data is supposed to set feature_names_in_.
         # If that happened, X is a DataFrame or similar, and the
         # columns should have names appropriate for a symbol.
-        if (hasattr(self, "feature_names_in_")
-            and self.feature_names_in_ is not None):
+        if hasattr(self, "feature_names_in_") and self.feature_names_in_ is not None:
             self.feature_names_in_sym_ = sympy.symbols(
-                list(self.feature_names_in_),
-                real=True)
+                list(self.feature_names_in_), real=True
+            )
         else:
             self.feature_names_in_sym_ = None
 
@@ -153,7 +236,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         n_vars = self.n_features_in_
         assert n_vars is not None
         xv = sympy.symbols(f"x1:{1+n_vars}", real=True)
-        vd = { str(x): x for x in xv }
+        vd = {str(x): x for x in xv}
         epsilon = sympy.symbols("ϵ")
         vd["epsilon"] = epsilon
 
@@ -161,11 +244,9 @@ class Regressor(RegressorMixin, BaseEstimator):
         self.raw_reg_str_ = jl.regression_main(X, y, prespec)
 
         # For use during testing:
-        #self.raw_reg_str_ = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
+        # self.raw_reg_str_ = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
 
-        self.sym_init_ = sympy.parsing.sympy_parser.parse_expr(
-            self.raw_reg_str_,
-            vd)
+        self.sym_init_ = sympy.parsing.sympy_parser.parse_expr(self.raw_reg_str_, vd)
 
         # Handle Jessamine's use of extended real numbers
         # where 1/0 = Inf:
@@ -184,8 +265,9 @@ class Regressor(RegressorMixin, BaseEstimator):
             self.model_sym_ = self.sym_
         else:
             # Columns have symbolic names, need to substitute
-            translation = [ (xv[j], self.feature_names_in_sym_[j])
-                            for j in range(n_vars) ]
+            translation = [
+                (xv[j], self.feature_names_in_sym_[j]) for j in range(n_vars)
+            ]
             self.model_sym_ = self.sym_.subs(translation)
 
         # SKL: fit() must return self
@@ -202,10 +284,7 @@ class Regressor(RegressorMixin, BaseEstimator):
 
     def predict(self, X):
         check_is_fitted(self)
-        X = validate_data(self,
-            X, "no_validation",
-            reset=False,
-            dtype=np.float64)
+        X = validate_data(self, X, "no_validation", reset=False, dtype=np.float64)
         x_cols = np.unstack(X, axis=1)
 
         return self.f_(*x_cols)

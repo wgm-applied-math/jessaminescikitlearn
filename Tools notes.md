@@ -79,10 +79,8 @@ _Note:_ In `docs/user_guide.md` this file is referred to as `environment.yml` an
 _Note:_ I had to change `base_environment.yml` to not install `pmlb` via GitHub, but just plain `pip install pmlb`.
 The GitHub repository doesn't have enough credits to allow for `git` to do LFS smudging.
 
-_Note:_ This is not true, but I can't figure out what happened, as I'm quite sure I saw this.
-Maybe I was looking at the wrong branch when I saw it?
-Anyway:
-In `docs/user_guide.md` it says to explicitly clone the `pmlb` repository from GitHub, which again, doesn't work because of LFS.
+_Note:_ On the master branch, in `docs/user_guide.md`, it says to explicitly clone the `pmlb` repository from GitHub, which again, doesn't work because of LFS.
+This instruction is not in the `srbench_2025` branch.
 
 _Note:_ In `docs/user_guide.md` it says to run `python download_data.py`, but the `firstprinciples` data sets give errors, so apparently they no longer exist.
 Which I don't understand, because they seem to be available at [the PMLB homepage](https://epistasislab.github.io/pmlb/).

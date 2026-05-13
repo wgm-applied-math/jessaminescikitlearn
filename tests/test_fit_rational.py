@@ -49,14 +49,22 @@ def make_data_as_dataframe():
     return (X_df, y_s)
 
 
-def test_fit_predict():
+def do_fit_predict():
     X, y = make_data()
     return fit_and_predict(X, y)
 
 
-def test_fit_predict_dataframe():
+def test_fit_predict():
+    do_fit_predict()
+
+
+def do_fit_predict_dataframe():
     X, y = make_data_as_dataframe()
     return fit_and_predict(X, y)
+
+
+def test_fit_predict_dataframe():
+    do_fit_predict_dataframe()
 
 
 def fit_and_predict(X, y, seed=0x918273645):

@@ -4,12 +4,15 @@
 
 # One Julia thread to avoid segfaults
 import os
+
 os.environ["JULIA_NUM_THREADS"] = "1"
 
 
 import juliapkg
 from juliacall import Main as jl
 
-jl.seval("""
+jl.seval(
+    """
 using JessamineSciKitLearn
-""")
+"""
+)

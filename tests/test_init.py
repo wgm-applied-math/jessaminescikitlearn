@@ -12,8 +12,10 @@ print(__package__)
 import jessaminescikitlearn
 import jessaminescikitlearn.Regression
 
+
 def test_init():
     assert True
+
 
 def test_default_pickle():
     r = jessaminescikitlearn.Regression.Regressor()
