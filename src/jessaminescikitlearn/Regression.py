@@ -44,6 +44,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         "lambda_p": [float, None],
         "lambda_op": [float, None],
         # Search
+        "max_time": [float, None],
         "stop_deadline": [dt.datetime, None],
         "num_islands": [int, None],
         "stop_threshold": [float, None],
@@ -77,6 +78,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         lambda_p: Optional[float] = None,
         lambda_op: Optional[float] = None,
         # Search
+        max_time: Optional[float] = None,
         stop_deadline: Optional[dt.datetime] = None,
         num_islands: Optional[int] = None,
         stop_threshold: Optional[float] = None,
@@ -118,6 +120,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         self.lambda_b = lambda_b
         self.lambda_op = lambda_op
         # Search
+        self.max_time = max_time
         self.stop_deadline = stop_deadline
         self.num_islands = num_islands
         self.stop_threshold = stop_threshold
@@ -143,8 +146,10 @@ class Regressor(RegressorMixin, BaseEstimator):
 
         # There has to be a stop deadline
         if not "stop_deadline" in prespec or prespec["stop_deadline"] is None:
+            # Maximum time in seconds:
+            max_time_seconds = prespec.get("max_time", 30)
             prespec["stop_deadline"] = dt.datetime.now(tz=None) + dt.timedelta(
-                seconds=30
+                seconds=max_time_seconds
             )
 
         # Bizarre: If the number of microseconds is not a
@@ -305,7 +310,10 @@ class Regressor(RegressorMixin, BaseEstimator):
         # SKL See comment in set_f()
         self.set_f()
 
-
-# From AR's AI generated code:
-
-# TODO Maybe bring over complexity()
+    def __str__(self):
+        # srbench seems to expect the result of str() to be a
+        # Sympy-compatible string
+        if hasattr(self, "model_sym_"):
+            return str(self.model_sym_)
+        else:
+            return repr(self)
