@@ -1,6 +1,8 @@
 
 # On Ubuntu, installing `conda`, etc
 
+I'm using `github:cavalab/srbench` branch `srbench_2025`. 
+
 ## Install `conda`
 
 To install Miniconda3 for controlled multi-user use:
@@ -77,4 +79,23 @@ _Note:_ In `docs/user_guide.md` this file is referred to as `environment.yml` an
 _Note:_ I had to change `base_environment.yml` to not install `pmlb` via GitHub, but just plain `pip install pmlb`.
 The GitHub repository doesn't have enough credits to allow for `git` to do LFS smudging.
 
-_Note:_ In `docs/user_guide.md` it says to explicitly clone the `pmlb` repository from GitHub, which again, doesn't work because of LFS.
+_Note:_ This is not true, but I can't figure out what happened, as I'm quite sure I saw this.
+Maybe I was looking at the wrong branch when I saw it?
+Anyway:
+In `docs/user_guide.md` it says to explicitly clone the `pmlb` repository from GitHub, which again, doesn't work because of LFS.
+
+_Note:_ In `docs/user_guide.md` it says to run `python download_data.py`, but the `firstprinciples` data sets give errors, so apparently they no longer exist.
+Which I don't understand, because they seem to be available at [the PMLB homepage](https://epistasislab.github.io/pmlb/).
+
+_Note:_ The `scripts/install_algorithm.sh` script uses `micromamba`.
+The `Dockerfile` lists it.
+So I could install that:
+```sh
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+```
+But the script requires many more corrections...
+
+
+
+## Trying out `xgboost`
+
