@@ -1,13 +1,9 @@
 name: Build
 
-# Run when a versioned push is performed to branch main
+# Run after a versioned push
 on:
   push:
-    branches: [ "main" ]
     tags: [ "v*" ]
-
-  pull_request:
-    branches: [ "main" ]
 
 # Need permission to write the resulting package files
 permissions:
