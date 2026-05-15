@@ -14,17 +14,19 @@ from .. import Regression
 "sklearn-compatible `Regressor` object"
 est = Regression.Regressor()
 
-def model(est, X=None):
+def model(est):
     "extract a Sympy-compatible string representation of the fitted model"
-    # The X here is so that the native symbolic representation of
-    # columns produced by an estimator can be translated into
-    # column names in a DataFrame X.
-    return est.model()
+    # The additional X=None parameter that could be here is so that the
+    # native symbolic representation of columns produced by an
+    # estimator can be translated into column names in a DataFrame X.
+    # Since Regressor handles that already, I don't need to accept an
+    # X here and then not use it.
+    return est.model_str()
 
 # This is not needed since model() can produce a Sympy-compatible string
 # "function to count the number of nodes"
 # def complexity(est):
 #     pass
 
-# "dictionary of model-specific arguments to srbench's `evaluate_model.py`
+# "dictionary of model-specific arguments to srbench's `evaluate_model.py`"
 # eval_kwargs = {}
