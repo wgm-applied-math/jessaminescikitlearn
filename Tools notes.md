@@ -178,3 +178,12 @@ FAILED
 So something is wrong because I've checked and `sympy` can parse Jessamine's output and all of the following strings.
 
 The warnings and exception are generated in `experiment/metrics/evaluation.py`, `get_symbolic_model`, around line 60.
+
+Turns out, `srbench` expects the output of `model(est)` to be a sympy-compatible string, not a sympy symbolic object. so the above error happens because it's effectively trying to parse an expression object as a string.
+
+
+_Note:_ Next error is that `test_algorithm.py`, `test_sympy()`, around line 120, there's an assertion that the algorithm module must implement `complexity`.
+I thought this wasn't actually necessary, because srbench has its own complexity measure that works on sympy-compatible models.
+So I commented it out.
+
+_Note:_ With those changes, Jessamine now passes `test_algorithm`.
