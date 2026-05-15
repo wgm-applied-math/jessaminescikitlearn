@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime as dt
+from numbers import Number
 import numpy as np
 import sklearn
 import sympy
@@ -44,7 +45,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         "lambda_p": [float, None],
         "lambda_op": [float, None],
         # Search
-        "max_time": [float, None],
+        "max_time": [Number, None],
         "stop_deadline": [dt.datetime, None],
         "num_islands": [int, None],
         "stop_threshold": [float, None],
@@ -78,7 +79,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         lambda_p: Optional[float] = None,
         lambda_op: Optional[float] = None,
         # Search
-        max_time: Optional[float] = None,
+        max_time: Optional[Number] = None,
         stop_deadline: Optional[dt.datetime] = None,
         num_islands: Optional[int] = None,
         stop_threshold: Optional[float] = None,
@@ -147,7 +148,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         # There has to be a stop deadline
         if not "stop_deadline" in prespec or prespec["stop_deadline"] is None:
             # Maximum time in seconds:
-            max_time_seconds = prespec.get("max_time", 30)
+            max_time_seconds = prespec.get("max_time", 30.0)
             prespec["stop_deadline"] = dt.datetime.now(tz=None) + dt.timedelta(
                 seconds=max_time_seconds
             )
