@@ -197,7 +197,7 @@ Specifically, I think this is why `datasets/download_data.py` fails.
 
 _Note:_
 This repository also doesn't have enough credits for LFS.
-So:
+So, here's how to manually make a wheel for version 1.0.2a:
 
 ```sh
 dnf install python3-build
@@ -206,6 +206,7 @@ cd pmlb
 python -m build
 ```
 
-Then in `dist/` I get a wheel and a source file, and they have a complete `all_summary_stats.tsv` file.
+Then in `dist/` I get a wheel and a source archive, and they have a complete `all_summary_stats.tsv` file, but none of the actual data files.
 
 
+Alternatively, it may be possible to do `conda install pmlb` and get better results, but that [entry in conda-forge](https://github.com/conda-forge/pmlb-feedstock) is also at version 1.0.1.
