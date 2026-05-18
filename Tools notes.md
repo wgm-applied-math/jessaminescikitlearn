@@ -187,3 +187,26 @@ I thought this wasn't actually necessary, because srbench has its own complexity
 So I commented it out.
 
 _Note:_ With those changes, Jessamine now passes `test_algorithm`.
+
+
+# Trouble with PMLB Python package
+
+On PyPI, the package `pmlb` is at version 1.0.1.post3.
+The wheel file includes `all_summary_stats.tsv` which does not include the `firstprinciples_*` datasets mentioned in the srbench scripts.
+Specifically, I think this is why `datasets/download_data.py` fails.
+
+_Note:_
+This repository also doesn't have enough credits for LFS.
+So, here's how to manually make a wheel for version 1.0.2a:
+
+```sh
+dnf install python3-build
+env GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/EpistasisLab/pmlb.git
+cd pmlb
+python -m build
+```
+
+Then in `dist/` I get a wheel and a source archive, and they have a complete `all_summary_stats.tsv` file, but none of the actual data files.
+
+
+Alternatively, it may be possible to do `conda install pmlb` and get better results, but that [entry in conda-forge](https://github.com/conda-forge/pmlb-feedstock) is also at version 1.0.1.
