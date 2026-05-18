@@ -3,10 +3,17 @@
 
 I'm using `github:cavalab/srbench` branch `srbench_2025`. 
 
-To get this to clone successfully, you have to disable git LFS smudging:
+To get this to clone successfully, you have to disable git LFS smudging.
+To do so temporarily:
 
 ```sh
 env GIT_LFS_SKIP_SMUDGE=1 git clone <repository-url>
+```
+
+To do so permanently:
+
+```sh
+https://github.com/EpistasisLab/pmlb.git
 ```
 
 
@@ -39,6 +46,9 @@ apt install pipx
 pipx install hatch
 pipx install mu-repo
 ```
+
+But miniconda is not really working here...?
+
 
 ## New environment
 
@@ -192,12 +202,15 @@ _Note:_ With those changes, Jessamine now passes `test_algorithm`.
 # Trouble with PMLB Python package
 
 On PyPI, the package `pmlb` is at version 1.0.1.post3.
-The wheel file includes `all_summary_stats.tsv` which does not include the `firstprinciples_*` datasets mentioned in the srbench scripts.
+The wheel file includes `all_summary_stats.tsv` which does not include the `firstprinciples_*` datasets mentioned in the `srbench` scripts.
 Specifically, I think this is why `datasets/download_data.py` fails.
 
+The current situation in `srbench` is that it installs `pmlb` via `conda`, and the
+[package in conda-forge](https://github.com/conda-forge/pmlb-feedstock) is also at version 1.0.1.
+
 _Note:_
-This repository also doesn't have enough credits for LFS.
-So, here's how to manually make a wheel for version 1.0.2a:
+The `pmlb` repository also doesn't have enough credits for LFS.
+So, here's how to manually make a local wheel for version 1.0.2a:
 
 ```sh
 dnf install python3-build
@@ -209,4 +222,75 @@ python -m build
 Then in `dist/` I get a wheel and a source archive, and they have a complete `all_summary_stats.tsv` file, but none of the actual data files.
 
 
-Alternatively, it may be possible to do `conda install pmlb` and get better results, but that [entry in conda-forge](https://github.com/conda-forge/pmlb-feedstock) is also at version 1.0.1.
+
+_Note:_
+Had to install via `apt` on Ubuntu to build the local wheel:
+- `python3-build`
+
+
+_Note:_
+I ran
+``sh
+conda uninstall pmlb
+```
+Which uninstalled some other stuff, including `requests`.
+
+Continuing to try to get `download_data.py` to work, I have to install these within the `conda` environment using `pip install --force-reinstall`:
+- `requests`
+
+Without the `--force-reinstall`, I end up with this bizarre situation where the `requests` package seems to be installed, `pip list` shows it, but when I run python, trying `import requests` says it can't find the module.
+
+And now finally `python download_data.py` runs to completion.
+
+## Trying `install_algorithm.sh`
+
+I've manually installed `micromamba` in the Ubuntu machine.
+
+From `srbench` base directory,
+
+```sh
+bash scripts/install_algorithm.sh jessamine
+```
+
+This mostly works, but it doesn't know where to put the `environment.lock` file.
+It specifies a non-existent directory in the output redirection.
+Nowhere in the script does it reference the `algorithms` directory, so I think the documentation in `user_guide.md` is mistaken.
+
+Trying this:
+From `srbench` base directory,
+
+```sh
+bash scripts/install_algorithm.sh algorithms/jessamine
+```
+
+This takes a _long_ time, about 15 minutes.
+And if anything goes wrong, you have to start all over again.
+
+## Trying `experiment/analyze.py`
+
+_Note:_ In branch `srbench_2025`, `user_guide.md`, it says to run `python experiment/analyze.py ...`
+I wrote a script with `--no_docker` and a few other options.
+But that results in errors from `sh` about how `optimize_model.py` is not found.
+
+I don't know why they're trying to run it with `sh`.
+
+In branch `docker-compose`, `user_guide.md`, it says to go into the `experiment` directory and run `python analyze.py ...`
+
+I was able to make that start at least.
+
+_Note:_
+I installed `docker.io` and a few companion packages.
+I tried running `experiment/analyze.py` with `--local` instead of `--no_docker` and it gives an error for each dataset like this:
+```
+docker compose run --rm -v /home/garrett/git/Research/srbench/experiment/experiment:/srbench -v /home/garrett/git/Research/srbench/experiment/../datasets/blackbox/:/../datasets/blackbox/ -v /home/garrett/git/Research/srbench/experiment/../results_blackbox_tuning/:/../results_blackbox_tuning/ -v /:/srbench_pretrained jessamine python -u /srbench/optimize_model.py /../datasets/blackbox/1193_BNG_lowbwt/1193_BNG_lowbwt.tsv.gz -ml jessamine -results_path /../results_blackbox_tuning/1193_BNG_lowbwt -seed 15795 -target_noise 0.0 -feature_noise 0.0 -fit_time_limit 60 -max_samples 4 --scale_x --scale_y
+no configuration file provided: not found
+```
+which I think is a `docker` error.
+
+
+# When running a clean re-do
+
+- Try restoring `base_environment.yml` where I'd commented out the git URL for PMLB.
+  Now that I've figured out how to disable git LFS smudging globally, maybe that installation will work properly.
+
+
