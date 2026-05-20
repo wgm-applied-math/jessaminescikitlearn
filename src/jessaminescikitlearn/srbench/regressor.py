@@ -9,18 +9,16 @@ necessary for incorporation into the srbench benchmark suite.
 
 from .. import Regression
 
-# hyper_params = []
-
 "sklearn-compatible `Regressor` object"
 est = Regression.Regressor()
 
-def model(est):
+def model(est, X=None):
     "extract a Sympy-compatible string representation of the fitted model"
     # The additional X=None parameter that could be here is so that the
     # native symbolic representation of columns produced by an
     # estimator can be translated into column names in a DataFrame X.
     # Since Regressor handles that already, I don't need to accept an
-    # X here and then not use it.
+    # X here and then not use it. But other srbench code requires the X.
     return est.model_str()
 
 # This is not needed since model() can produce a Sympy-compatible string
