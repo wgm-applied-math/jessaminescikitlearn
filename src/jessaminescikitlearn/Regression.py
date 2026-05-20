@@ -264,7 +264,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         # SKL See comment in set_f().
         self.set_f()
 
-        print(f"Regression.fit: sym: {self.sym_}")
+        # print(f"Regression.fit: sym: {self.sym_}")
         if self.feature_names_in_sym_ is None:
             # Vanilla feature names, no need to substitute
             self.feature_names_in_sym_ = xv
@@ -295,9 +295,13 @@ class Regressor(RegressorMixin, BaseEstimator):
 
         return self.f_(*x_cols)
 
-    def model(self):
+    def model_sympy(self):
         check_is_fitted(self)
         return self.model_sym_
+
+    def model_str(self):
+        check_is_fitted(self)
+        return str(self.model_sympy())
 
     def __getstate__(self):
         state = self.__dict__.copy()
