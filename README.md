@@ -1,4 +1,4 @@
-# JessamineSciKitLearn
+# Package `jessaminescikitlearn`
 
 [![PyPI - Version](https://img.shields.io/pypi/v/jessaminescikitlearn.svg)](https://pypi.org/project/jessaminescikitlearn)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/jessaminescikitlearn.svg)](https://pypi.org/project/jessaminescikitlearn)
