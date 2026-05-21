@@ -106,7 +106,7 @@ def fit_and_predict(X, y):
     r.fit(X, y)
     print(r.raw_reg_str_)
     print(r.sym_)
-    print(r.model())
+    print(r.model_str())
     yHat = r.predict(X)
     discrepancy = sum((yHat - y) ** 2)
     print(f"fit_and_predict: discrepancy = {discrepancy}")
