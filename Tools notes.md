@@ -201,16 +201,17 @@ _Note:_ With those changes, Jessamine now passes `test_algorithm`.
 
 # Trouble with PMLB Python package
 
-On PyPI, the package `pmlb` is at version 1.0.1.post3.
-The wheel file includes `all_summary_stats.tsv` which does not include the `firstprinciples_*` datasets mentioned in the `srbench` scripts.
-Specifically, I think this is why `datasets/download_data.py` fails.
-
-The current situation in `srbench` is that it installs `pmlb` via `conda`, and the
-[package in conda-forge](https://github.com/conda-forge/pmlb-feedstock) is also at version 1.0.1.
-
-_Note:_
 The `pmlb` repository also doesn't have enough credits for LFS.
-So, here's how to manually make a local wheel for version 1.0.2a:
+So I've tried various things, including changing `base_environment.yml` to install `pmlb` just as a `conda` package, no GitHub, which eventually didn't work:
+
+On PyPI, the package `pmlb` is at version 1.0.1.post3.
+The [package in conda-forge](https://github.com/conda-forge/pmlb-feedstock) is also at version 1.0.1.
+The wheel file in these packages includes a table file `all_summary_stats.tsv` which does not include the `firstprinciples_*` datasets mentioned in the `srbench` scripts.
+(This also causes `datasets/download_data.py` to fail.)
+
+So you have to either package and install it manually, or configure git LFS to not do smudging anywhere.
+
+Here's how to manually make a local wheel for version 1.0.2a:
 
 ```sh
 dnf install python3-build
@@ -228,8 +229,8 @@ Had to install via `apt` on Ubuntu to build the local wheel:
 - `python3-build`
 
 
-_Note:_
-I ran
+_Old Note:_
+To fix my sandbox, I had to first run
 ``sh
 conda uninstall pmlb
 ```
@@ -266,6 +267,32 @@ bash scripts/install_algorithm.sh algorithms/jessamine
 This takes a _long_ time, about 15 minutes.
 And if anything goes wrong, you have to start all over again.
 
+## Trying `local_ci.sh`
+
+This script seems to do the necessary setup and run the `test_algorithm.py` and `test_population.py` scripts, but not `test_evaluate_model.py`.
+Since it runs basically the same stuff as `scripts/install_algorithm.sh`, it takes a very long time to get started.
+
+This script requires `mamba`, so
+```
+conda install mamba
+```
+I don't know why all of this needs `conda` and also `mamba` and also `micromamba`.
+As best I can tell they all do more or less the same thing?
+
+There has to be a conda environment named `srbench` for it to clone:
+```
+conda env create -n srbench -f ./base_environment.yml
+```
+
+
+Running
+```
+bash local_ci.sh jessamine
+```
+it asks a yes-no prompt along the way about installing a bunch of stuff, which I assume is either `conda` or `mamba` double checking before it starts building an environment.
+All tests pass at this point.
+
+
 ## Trying `experiment/analyze.py`
 
 _Note:_ In branch `srbench_2025`, `user_guide.md`, it says to run `python experiment/analyze.py ...`
@@ -290,7 +317,7 @@ which I think is a `docker` error.
 
 # When running a clean re-do
 
-- Try restoring `base_environment.yml` where I'd commented out the git URL for PMLB.
+- [x] Try restoring `base_environment.yml` where I'd commented out the git URL for PMLB.
   Now that I've figured out how to disable git LFS smudging globally, maybe that installation will work properly.
 
 
