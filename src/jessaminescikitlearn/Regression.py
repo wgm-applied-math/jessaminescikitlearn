@@ -168,7 +168,6 @@ class Regressor(RegressorMixin, BaseEstimator):
         n = self.n_features_in_
 
         # Genome
-        # Defaults
         g_spec = {
             "input_size": n,
             "output_size": n + (1 + n) // 2,
@@ -179,34 +178,6 @@ class Regressor(RegressorMixin, BaseEstimator):
             if k in prespec and prespec[k] is not None:
                 g_spec[k] = prespec[k]
         prespec["genome"] = g_spec
-
-        # Mutation
-        m_spec = {}
-        for k in [
-            "p_mutate_op",
-            "p_mutate_index",
-            "p_duplicate_index",
-            "p_delete_index",
-            "p_duplicate_instruction",
-            "p_delete_instruction",
-            "p_hop_instruction",
-        ]:
-            if k in prespec and prespec[k] is not None:
-                m_spec[k] = prespec[k]
-
-        # Selection
-        s_spec = {}
-        for k in [
-            "num_to_keep",
-            "num_to_generate",
-            "p_take_better",
-            "p_take_very_best",
-        ]:
-            if k in prespec and prespec[k] is not None:
-                s_spec[k] = prespec[k]
-
-        # Exploration
-        prespec["exploration"] = m_spec | s_spec
 
         return prespec
 
