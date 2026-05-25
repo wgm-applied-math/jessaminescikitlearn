@@ -2,10 +2,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# import pytest
-
 import pandas as pd
 import pickle
+import pytest
 import numpy as np
 from scipy import stats
 import sympy
@@ -97,11 +96,37 @@ def test_fit_predict_dataframe():
 
 
 def fit_and_predict(X, y):
-
     # Just override a few things to see if it works:
     r = JR.Regressor(
         simplify=False,
         p_duplicate_instruction=0.01,
+    )
+    r.fit(X, y)
+    print(r.raw_reg_str_)
+    print(r.sym_)
+    print(r.model_str())
+    yHat = r.predict(X)
+    discrepancy = sum((yHat - y) ** 2)
+    print(f"fit_and_predict: discrepancy = {discrepancy}")
+    assert discrepancy < 1e-10
+    return r
+
+def test_fit_predict2():
+    X, y = make_data_as_dataframe()
+    fit_and_predict2(X, y)
+
+def fit_and_predict2(X, y):
+    # Override several things to see if it works:
+    r = JR.Regressor(
+        simplify=True,
+        output_size=7,
+        scratch_size=5,
+        parameter_size=3,
+        num_time_steps=1,
+        num_to_keep=20,
+        num_to_generate=40,
+        p_duplicate_instruction=0.01,
+        lambda_op=8e-5
     )
     r.fit(X, y)
     print(r.raw_reg_str_)
