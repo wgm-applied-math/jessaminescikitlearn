@@ -284,9 +284,11 @@ class Regressor(RegressorMixin, BaseEstimator):
         # attributes.  So we have to cache the lambdified f in
         # fit() and restore it during unpickling.
         # Hence this method.
-        if not hasattr(self, "f_"):
+        if hasattr(self, "xv_") and hasattr(self, "sym_") and not hasattr(self, "f_"):
             self.f_ = sympy.lambdify(self.xv_, self.sym_)
-        return self.f_
+            return self.f_
+        else:
+            return None
 
     def predict(self, X):
         check_is_fitted(self)
