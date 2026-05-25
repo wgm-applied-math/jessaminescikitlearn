@@ -168,16 +168,15 @@ class Regressor(RegressorMixin, BaseEstimator):
         n = self.n_features_in_
 
         # Genome
-        g_spec = {
+        g_spec_auto = {
             "input_size": n,
             "output_size": n + (1 + n) // 2,
             "scratch_size": (1 + n) // 2,
             "parameter_size": (1 + n) // 2,
         }
         for k in ["input_size", "output_size", "scratch_size", "parameter_size"]:
-            if k in prespec and prespec[k] is not None:
-                g_spec[k] = prespec[k]
-        prespec["genome"] = g_spec
+            if prespec.get(k, None) is None:
+                prespec[k] = g_spec_auto[k]
 
         return prespec
 
