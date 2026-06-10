@@ -2,18 +2,36 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from contextlib import contextmanager
 import datetime as dt
 from numbers import Number
 import numpy as np
-import sklearn
+import signal
 import sympy
+from typing import Optional
 
 from sklearn.utils.validation import check_is_fitted, validate_data
-from typing import Any, Optional
-
 from sklearn.base import BaseEstimator, RegressorMixin, _fit_context
 
 from . import jl
+
+
+class TimeoutError(Exception):
+    pass
+
+
+@contextmanager
+def time_limit(seconds=60):
+    def _handler(signum, frame):
+        raise TimeoutError(f"Calculation exceeded {seconds}s time limit")
+    old_handler = signal.signal(signal.SIGALRM, _handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
+
 
 
 class Regressor(RegressorMixin, BaseEstimator):
@@ -21,6 +39,7 @@ class Regressor(RegressorMixin, BaseEstimator):
     # SKL Used by @_fit_context() for validation
     _parameter_constraints = {
         "random_state": ["random_state", None],
+        "verbosity": [int, None],
         # Genome spec
         "output_size": [int, None],
         "scratch_size": [int, None],
@@ -55,6 +74,7 @@ class Regressor(RegressorMixin, BaseEstimator):
     def __init__(
         self,
         random_state: Optional[int] = None,
+        verbosity: Optional[int] = None,
         # Genome spec
         output_size: Optional[int] = None,
         scratch_size: Optional[int] = None,
@@ -96,7 +116,9 @@ class Regressor(RegressorMixin, BaseEstimator):
         # assume for immutability reasons.  So genome_spec,
         # etc. have to default to None rather than {}.
 
+        # General
         self.random_state = random_state
+        self.verbosity = verbosity
         # Genome spec
         self.output_size = output_size
         self.scratch_size = scratch_size
@@ -214,22 +236,46 @@ class Regressor(RegressorMixin, BaseEstimator):
         xv = sympy.symbols(f"x1:{1+n_vars}", real=True)
         vd = {str(x): x for x in xv}
         epsilon = sympy.symbols("ϵ")
+        Inf = sympy.symbols("Inf")
         vd["epsilon"] = epsilon
+        vd["Inf"] = Inf
 
         # Turn the crank
-        self.raw_reg_str_ = jl.regression_main(X, y, prespec)
+        result = jl.regression_main(X, y, prespec)
 
-        # For use during testing:
-        # self.raw_reg_str_ = "((0.544091161224765 * x1) + ((-2.999999999999381 * (x1 * x2)) + ((0.8186362795911761 * (2.443087424614468 + (3 * x1))) + (2.9999999999994373 * x2))))"
+        # Go through and try to find one that can be properly
+        # processed.
+        raw_reg_str = None
+        expr = None
+        # Look for the best usable agent.  The wrinkle is that
+        # Julia handles division by zero differently from sympy
+        # and Python, so some agents that work well enough within
+        # Jessamine yield expressions that sympy can't handle.
+        # So we go through the list of discoveries until we find
+        # one that works.
+        for r in result.discoveries:
+            raw_reg_str = r.y_num_str
+            try:
+                with time_limit():
+                    expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
+                    # These show up in certain cases of division by zero.
+                    # In Julia, 1.0 / 0.0 is Inf.
+                    if epsilon in expr.free_symbols:
+                        expr_simp = sympy.simplify(expr)
+                        expr = sympy.limit(expr_simp, epsilon, 0, dir="+")
+                    # These also show up sometimes
+                    if Inf in expr.free_symbols:
+                        expr_simp = sympy.simplify(expr)
+                        expr = sympy.limit(expr_simp, Inf, sympy.oo)
+                    expr = sympy.simplify(expr)
+                    expr = expr.evalf()
+                    # If all of that works, we've found a good one, exit the loop
+                    break
+            except Exception as e:
+                raise e
 
-        self.sym_init_ = sympy.parsing.sympy_parser.parse_expr(self.raw_reg_str_, vd)
-
-        # Handle Jessamine's use of extended real numbers
-        # where 1/0 = Inf:
-        # In the Julia result string, 1/0 is changed into 1/epsilon,
-        # and the parser converts `epsilon` into `ϵ`.
-        # Then we do this limit:
-        self.sym_ = sympy.limit(self.sym_init_, epsilon, 0, dir="+-")
+        self.sym_ = expr
+        self.raw_reg_str_ = raw_reg_str
         self.xv_ = xv
         # SKL See comment in set_f().
         self.set_f()
