@@ -235,9 +235,11 @@ class Regressor(RegressorMixin, BaseEstimator):
         assert n_vars is not None
         xv = sympy.symbols(f"x1:{1+n_vars}", real=True)
         vd = {str(x): x for x in xv}
-        epsilon = sympy.symbols("ϵ", real=True)
+        epsilon = sympy.symbols("ε", real=True)
         Inf = sympy.symbols("Inf", real=True)
         vd["epsilon"] = epsilon
+        vd["ϵ"] = epsilon
+        vd["ε"] = epsilon
         vd["Inf"] = Inf
 
         # Turn the crank
