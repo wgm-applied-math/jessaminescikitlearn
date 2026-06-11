@@ -257,24 +257,22 @@ class Regressor(RegressorMixin, BaseEstimator):
         # one that works.
         for r in result.discoveries:
             raw_reg_str = r.y_num_str
-            try:
-                with time_limit():
-                    expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
-                    # These show up in certain cases of division by zero.
-                    # In Julia, 1.0 / 0.0 is Inf.
-                    if epsilon in expr.free_symbols:
-                        expr_simp = sympy.simplify(expr)
-                        expr = sympy.limit(expr_simp, epsilon, 0, dir="+")
-                    # These also show up sometimes
-                    if Inf in expr.free_symbols:
-                        expr_simp = sympy.simplify(expr)
-                        expr = sympy.limit(expr_simp, Inf, sympy.oo)
-                    expr = sympy.simplify(expr)
-                    expr = expr.evalf()
-                    # If all of that works, we've found a good one, exit the loop
-                    break
-            except Exception as e:
-                raise e
+            expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
+            with time_limit():
+                expr = sympy.simplify(expr, rational=False)
+
+                # These show up in certain cases of division by zero.
+                # In Julia, 1.0 / 0.0 is Inf.
+                if epsilon in expr.free_symbols:
+                    expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
+                    expr = sympy.simplify(expr, rational=False)
+
+                # These also show up sometimes
+                if Inf in expr.free_symbols:
+                    expr = sympy.limit(expr, Inf, sympy.oo).evalf()
+                    expr = sympy.simplify(expr, rational=False)
+                # If all of that works, we've found a good one, exit the loop
+                break
 
         self.sym_ = expr
         self.raw_reg_str_ = raw_reg_str
