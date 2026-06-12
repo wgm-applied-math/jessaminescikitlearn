@@ -10,6 +10,7 @@ import numpy as np
 import signal
 import sympy
 from typing import Optional
+import warnings
 
 from sklearn.base import BaseEstimator, RegressorMixin, _fit_context
 from sklearn.exceptions import NotFittedError, FitFailedWarning
@@ -265,36 +266,49 @@ class Regressor(RegressorMixin, BaseEstimator):
         # and Python, so some agents that work well enough within
         # Jessamine yield expressions that sympy can't handle.
         # So we go through the list of discoveries until we find
-        # one that works.
+        # one that works.  Note that everything involving sympy
+        # needs to inside of try:catch: here, because even
+        # parsing a string triggers some simplifications that can
+        # fail.  For example, sympy.sin(sympy.oo)), as in
+        # sin(+infinity) gets translated into an accumulation set
+        # object, something representing [-1,1], which can cause
+        # problems later on.  I think this is so sympy can do
+        # things like lim as x->infinity of sin(x)/x = 0, even
+        # though the sin(x) part is non-convergent.
+
         for r in result.discoveries:
             raw_reg_str = r.y_num_str
-            expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
             try:
-                with time_limit(self.post_simplifier_time):
-                    expr = sympy.simplify(expr, rational=False)
-
-                    # These show up in certain cases of division by zero.
-                    # In Julia, 1.0 / 0.0 is Inf.
-                    if epsilon in expr.free_symbols:
-                        expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
+                # Elevate all warnings to errors so any trouble
+                # sympy has triggers moving on to the next discovery.
+                # These are generally numerical overflows and such.
+                with warnings.catch_warnings(action="error"):
+                    with time_limit(self.post_simplifier_time):
+                        expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
                         expr = sympy.simplify(expr, rational=False)
 
-                    # These also show up sometimes
-                    if Inf in expr.free_symbols:
-                        expr = sympy.limit(expr, Inf, sympy.oo).evalf()
-                        expr = sympy.simplify(expr, rational=False)
+                        # These show up in certain cases of division by zero.
+                        # In Julia, 1.0 / 0.0 is Inf.
+                        if epsilon in expr.free_symbols:
+                            expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
+                            expr = sympy.simplify(expr, rational=False)
 
-                    self.sym_ = expr
-                    self.raw_reg_str_ = raw_reg_str
-                    # SKL See comment in set_f().
-                    self.set_f()
+                        # These also show up sometimes
+                        if Inf in expr.free_symbols:
+                            expr = sympy.limit(expr, Inf, sympy.oo).evalf()
+                            expr = sympy.simplify(expr, rational=False)
 
-                    y_hat = self.predict(X)
-                    mse = ((y - y_hat)**2).mean()
-                    if not math.isnan(mse) and math.isfinite(mse):
-                        # If all of that works, we've found a good one, exit the loop
-                        break
-                    # Otherwise, keep looking
+                        self.sym_ = expr
+                        self.raw_reg_str_ = raw_reg_str
+                        # SKL See comment in set_f().
+                        self.set_f()
+
+                        y_hat = self.predict(X)
+                        mse = ((y - y_hat)**2).mean()
+                        if not math.isnan(mse) and math.isfinite(mse):
+                            # If all of that works, we've found a good one, exit the loop
+                            break
+                        # Otherwise, keep looking
             except:
                 pass
 
