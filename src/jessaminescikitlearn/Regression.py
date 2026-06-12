@@ -291,7 +291,7 @@ class Regressor(RegressorMixin, BaseEstimator):
 
                     y_hat = self.predict(X)
                     mse = ((y - y_hat)**2).mean()
-                    if not math.isnan(mse):
+                    if not math.isnan(mse) and math.isfinite(mse):
                         # If all of that works, we've found a good one, exit the loop
                         break
                     # Otherwise, keep looking
