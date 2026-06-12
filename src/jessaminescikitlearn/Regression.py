@@ -4,14 +4,17 @@
 
 from contextlib import contextmanager
 import datetime as dt
+import math
 from numbers import Number
 import numpy as np
 import signal
 import sympy
 from typing import Optional
 
-from sklearn.utils.validation import check_is_fitted, validate_data
 from sklearn.base import BaseEstimator, RegressorMixin, _fit_context
+from sklearn.exceptions import NotFittedError, FitFailedWarning
+from sklearn.utils.validation import validate_data
+
 
 from . import jl
 
@@ -20,8 +23,9 @@ class TimeoutError(Exception):
     pass
 
 
+# This only works on Posix
 @contextmanager
-def time_limit(seconds=60):
+def time_limit(seconds):
     def _handler(signum, frame):
         raise TimeoutError(f"Calculation exceeded {seconds}s time limit")
     old_handler = signal.signal(signal.SIGALRM, _handler)
@@ -69,6 +73,7 @@ class Regressor(RegressorMixin, BaseEstimator):
         "num_islands": [int, None],
         "stop_threshold": [float, None],
         "simplify": [bool],
+        "post_simplifier_time": [Number]
     }
 
     def __init__(
@@ -104,6 +109,8 @@ class Regressor(RegressorMixin, BaseEstimator):
         num_islands: Optional[int] = None,
         stop_threshold: Optional[float] = None,
         simplify: bool = True,
+        # After Jessamine
+        post_simplifier_time: Number = 60
     ):
 
         # SKL conventions:
@@ -148,6 +155,8 @@ class Regressor(RegressorMixin, BaseEstimator):
         self.num_islands = num_islands
         self.stop_threshold = stop_threshold
         self.simplify = simplify
+        # After Jessamine
+        self.post_simplifier_time = post_simplifier_time
 
         # For future compatibility, include a version
         self._version = (1, 0, 0)
@@ -241,6 +250,8 @@ class Regressor(RegressorMixin, BaseEstimator):
         vd["ϵ"] = epsilon
         vd["ε"] = epsilon
         vd["Inf"] = Inf
+        self.xv_ = xv
+        self.f_ = None
 
         # Turn the crank
         result = jl.regression_main(X, y, prespec)
@@ -258,27 +269,37 @@ class Regressor(RegressorMixin, BaseEstimator):
         for r in result.discoveries:
             raw_reg_str = r.y_num_str
             expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
-            with time_limit():
-                expr = sympy.simplify(expr, rational=False)
-
-                # These show up in certain cases of division by zero.
-                # In Julia, 1.0 / 0.0 is Inf.
-                if epsilon in expr.free_symbols:
-                    expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
+            try:
+                with time_limit(self.post_simplifier_time):
                     expr = sympy.simplify(expr, rational=False)
 
-                # These also show up sometimes
-                if Inf in expr.free_symbols:
-                    expr = sympy.limit(expr, Inf, sympy.oo).evalf()
-                    expr = sympy.simplify(expr, rational=False)
-                # If all of that works, we've found a good one, exit the loop
-                break
+                    # These show up in certain cases of division by zero.
+                    # In Julia, 1.0 / 0.0 is Inf.
+                    if epsilon in expr.free_symbols:
+                        expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
+                        expr = sympy.simplify(expr, rational=False)
 
-        self.sym_ = expr
-        self.raw_reg_str_ = raw_reg_str
-        self.xv_ = xv
-        # SKL See comment in set_f().
-        self.set_f()
+                    # These also show up sometimes
+                    if Inf in expr.free_symbols:
+                        expr = sympy.limit(expr, Inf, sympy.oo).evalf()
+                        expr = sympy.simplify(expr, rational=False)
+
+                    self.sym_ = expr
+                    self.raw_reg_str_ = raw_reg_str
+                    # SKL See comment in set_f().
+                    self.set_f()
+
+                    y_hat = self.predict(X)
+                    mse = ((y - y_hat)**2).mean()
+                    if not math.isnan(mse):
+                        # If all of that works, we've found a good one, exit the loop
+                        break
+                    # Otherwise, keep looking
+            except:
+                pass
+
+        if self.f_ is None:
+            raise FitFailedWarning("Jessamine was unable to find a suitable expression")
 
         # print(f"Regression.fit: sym: {self.sym_}")
         if self.feature_names_in_sym_ is None:
@@ -300,25 +321,32 @@ class Regressor(RegressorMixin, BaseEstimator):
         # attributes.  So we have to cache the lambdified f in
         # fit() and restore it during unpickling.
         # Hence this method.
-        if hasattr(self, "xv_") and hasattr(self, "sym_") and not hasattr(self, "f_"):
+        if hasattr(self, "xv_") and hasattr(self, "sym_"):
             self.f_ = sympy.lambdify(self.xv_, self.sym_)
             return self.f_
         else:
+            self.f_ = None
             return None
 
+    def check_is_fitted(self):
+        if hasattr(self, "f_") and self.f_ is not None:
+            return True
+        else:
+            raise NotFittedError("This regessor instance had not been successfully fitted yet.")
+
     def predict(self, X):
-        check_is_fitted(self)
+        self.check_is_fitted()
         X = validate_data(self, X, "no_validation", reset=False, dtype=np.float64)
         x_cols = np.unstack(X, axis=1)
 
         return self.f_(*x_cols)
 
     def model_sympy(self):
-        check_is_fitted(self)
+        self.check_is_fitted()
         return self.model_sym_
 
     def model_str(self):
-        check_is_fitted(self)
+        self.check_is_fitted()
         return str(self.model_sympy())
 
     def __getstate__(self):
