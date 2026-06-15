@@ -7,7 +7,7 @@ name = "jessaminescikitlearn"
 dynamic = ["version"]
 description = "Python scikit-learn wrapper for Jessamine"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE.txt"]
 keywords = []
@@ -24,11 +24,19 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
+
+# Package versions as of 2026-06-15
+# Assuming all packages are semantic-versioning compliant
 dependencies = [
+    # Fedora 43 is at 2.3, pypi is at 2.4
     "numpy~=2.3",
-    "scikit-learn~=1.8",
+    # Fedora 43 is at 1.7.2, pypi is at 1.9.0
+    "scikit-learn~=1.7",
+    # Fedora 43 and pypi are at 1.14.0
     "sympy~=1.14",
+    # pypi is at 0.9.35
     "juliacall~=0.9",
+    # Fedora 43 is at 2.3.3, pypi is at 3.0.3
     "pandas~=3.0",
 ]
 
