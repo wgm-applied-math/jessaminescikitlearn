@@ -69,12 +69,12 @@ class Regressor(RegressorMixin, BaseEstimator):
         "lambda_p": [float, None],
         "lambda_op": [float, None],
         # Search
-        "max_time": [Number, None],
+        "max_time": [int, None],
         "stop_deadline": [dt.datetime, None],
         "num_islands": [int, None],
         "stop_threshold": [float, None],
         "simplify": [bool],
-        "post_simplifier_time": [Number]
+        "post_simplifier_time": [int]
     }
 
     def __init__(
@@ -105,13 +105,13 @@ class Regressor(RegressorMixin, BaseEstimator):
         lambda_p: Optional[float] = None,
         lambda_op: Optional[float] = None,
         # Search
-        max_time: Optional[Number] = None,
+        max_time: Optional[int] = None,
         stop_deadline: Optional[dt.datetime] = None,
         num_islands: Optional[int] = None,
         stop_threshold: Optional[float] = None,
         simplify: bool = True,
         # After Jessamine
-        post_simplifier_time: Number = 60
+        post_simplifier_time: int = 60
     ):
 
         # SKL conventions:
