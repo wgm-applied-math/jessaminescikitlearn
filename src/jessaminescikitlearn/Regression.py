@@ -303,14 +303,17 @@ class Regressor(RegressorMixin, BaseEstimator):
                         # SKL See comment in set_f().
                         self.set_f()
 
-                        y_hat = self.predict(X)
+                        # During fit(), X has already been validated/coerced to an array.
+                        # Calling predict(X) here can trigger a feature-name warning when
+                        # original training data had named columns.
+                        y_hat = self.f_(*np.unstack(X, axis=1))
                         mse = ((y - y_hat)**2).mean()
                         if not math.isnan(mse) and math.isfinite(mse):
                             # If all of that works, we've found a good one, exit the loop
                             break
                         # Otherwise, keep looking
             except:
-                pass
+                raise
 
         if self.f_ is None:
             raise FitFailedWarning("Jessamine was unable to find a suitable expression")
