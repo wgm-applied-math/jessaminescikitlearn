@@ -1,4 +1,3 @@
-
 # On Ubuntu, installing `conda`, etc
 
 I'm using `github:cavalab/srbench` branch `srbench_2025`. 
@@ -321,3 +320,32 @@ which I think is a `docker` error.
   Now that I've figured out how to disable git LFS smudging globally, maybe that installation will work properly.
 
 
+# 2026-06-15 Where I am
+
+I've been trying to find decent benchmark files.
+I decided to try to track down the Friedman function test cases, because there are these files `XXX_fri_XXX` in PMLB.
+As best I can tell, they are all generated using the Friedman #1 function from the paper _Bagging Predictors_ by Breiman, but with different numbers of distraction variables, different numbers of points, and different amounts of colinearity among the distraction variables.
+I tracked the original data files to a WEKA archive that has no source code for how they were created, and no description of colinearity other than that cn means that some variables depend linearly on n others, something like that.
+I am therefore giving up on that bunch of datasets.
+Instead, I'm going to use scikit-learn's `make_friedman` functions to generate fresh problems of the same type.
+I will make a sub-project somewhere else that uses `jessaminescikitlearn` to run those benchmarks.
+
+# Trying to get this package working on the cluster
+
+## Problem with `hatch` and `virtualenv`
+
+When I try to use `hatch` on the cluster, I keep getting errors like this:
+
+```
+Environment `default` is incompatible: module 'virtualenv.discovery.builtin' has no attribute 'propose_interpreters'
+```
+
+This seems to have something to do with [`virtualenv` version 21](https://github.com/pypa/hatch/issues/2193), but that's not the whole story and I don't know why I get this error on the cluster, which has `virtualenv` at version 20.
+
+I got it to work on the cluster by running
+
+```
+pip install 'virtualenv<21'
+```
+
+and now `hatch` seems to be working.
