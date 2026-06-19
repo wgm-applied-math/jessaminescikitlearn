@@ -2,12 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from contextlib import contextmanager
 import datetime as dt
 import math
-from numbers import Number
+import multiprocessing
+from types import NoneType
 import numpy as np
-import signal
 import sympy
 from typing import Optional
 import warnings
@@ -19,24 +18,99 @@ from sklearn.utils.validation import validate_data
 
 from . import jl
 
-
-class TimeoutError(Exception):
+class NoSolutionError(Exception):
     pass
 
 
-# This only works on Posix
-@contextmanager
-def time_limit(seconds):
-    def _handler(signum, frame):
-        raise TimeoutError(f"Calculation exceeded {seconds}s time limit")
-    old_handler = signal.signal(signal.SIGALRM, _handler)
-    signal.alarm(seconds)
+# This has to be at module scope rather than be a closure because
+# of some limitation of pickling.
+def worker(queue, f, f_args, f_kwargs):
     try:
-        yield
-    finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old_handler)
+        report = f(*f_args, **f_kwargs)
+        queue.put({"value": report})
+    except Exception as e:
+        queue.put({"exception": e})
 
+def run_with_time_limit(seconds, f, *f_args, **f_kwargs):
+    queue = multiprocessing.Queue()
+
+    process = multiprocessing.Process(target=worker, args=(queue, f, f_args, f_kwargs))
+    process.start()
+    process.join(seconds)
+
+    if process.is_alive():
+        # We waited in join() and ran out of time.
+        process.terminate()
+        process.join()
+        raise multiprocessing.TimeoutError()
+
+    # Some kind of error occurred and it terminated early.
+    if process.exitcode != 0:
+        raise NoSolutionError()
+
+    # If we get to here, the subprocess finished successfully and
+    # on time.
+    report = queue.get()
+    if "exception" in report:
+        raise report["exception"]
+
+    # If we get to here, the subprocesses completed the report.
+    return report["value"]
+
+
+# This also has to be at module level because of pickling.
+def try_one_discovery(julia_result, model_syms, x_syms, X, y):
+    epsilon = sympy.symbols("ε", real=True)
+    Inf = sympy.symbols("Inf", real=True)
+    vd = ({ str(x): x for x in x_syms } |
+          {"epsilon": epsilon, "ε": epsilon, "ϵ": epsilon, "Inf": Inf})
+
+    rating = julia_result.agent.rating
+    raw_reg_str = julia_result.y_num_str
+
+    # print("About to parse")
+    expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
+    # print("About to simplify")
+    expr = sympy.simplify(expr, rational=False)
+
+    # These show up in certain cases of division by zero.
+    # In Julia, 1.0 / 0.0 is Inf.
+    if epsilon in expr.free_symbols:
+        # print("About to do limit epslion -> 0")
+        expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
+        # print("About to simplify")
+        expr = sympy.simplify(expr, rational=False)
+
+    # These also show up sometimes
+    if Inf in expr.free_symbols:
+        # print("About to do limit Inf -> infinity")
+        expr = sympy.limit(expr, Inf, sympy.oo).evalf()
+        # print("About to simplify")
+        expr = sympy.simplify(expr, rational=False)
+
+    # Need f so that we can check that mse computes but we can't
+    # return it from the subprocesses because it can't be
+    # pickled, so we end up computing it again.
+
+    # print("About to lambdify")
+    f = sympy.lambdify(x_syms, expr)
+
+    # Apply f to each row of X
+    y_hat = f(*np.unstack(X, axis=1))
+    mse = ((y - y_hat)**2).mean()
+
+    if not math.isnan(mse) and math.isfinite(mse):
+        report = {
+            "rating": rating,
+            "mse": mse,
+            "expr": str(expr),
+        }
+        if model_syms is not None:
+            expr_model_syms = expr.subs(zip(x_syms, model_syms))
+            report["expr_model_syms"] = str(expr_model_syms)
+        return report
+    else:
+        raise NoSolutionError()
 
 
 class Regressor(RegressorMixin, BaseEstimator):
@@ -233,102 +307,71 @@ class Regressor(RegressorMixin, BaseEstimator):
         # If that happened, X is a DataFrame or similar, and the
         # columns should have names appropriate for a symbol.
         if hasattr(self, "feature_names_in_") and self.feature_names_in_ is not None:
-            self.feature_names_in_sym_ = sympy.symbols(
+            # TODO: Check that column names are sensible
+            model_syms = sympy.symbols(
                 list(self.feature_names_in_), real=True
             )
+            self.feature_names_in_sym_ = model_syms
         else:
+            model_syms = None
             self.feature_names_in_sym_ = None
 
         # The 1+ here is because symbols() uses python's range convention,
         # so 1:5 means 1 <= j < 5.
         n_vars = self.n_features_in_
         assert n_vars is not None
-        xv = sympy.symbols(f"x1:{1+n_vars}", real=True)
-        vd = {str(x): x for x in xv}
-        epsilon = sympy.symbols("ε", real=True)
-        Inf = sympy.symbols("Inf", real=True)
-        vd["epsilon"] = epsilon
-        vd["ϵ"] = epsilon
-        vd["ε"] = epsilon
-        vd["Inf"] = Inf
-        self.xv_ = xv
+        x_syms = sympy.symbols(f"x1:{1+n_vars}", real=True)
+        self.x_syms_ = x_syms
         self.f_ = None
 
         # Turn the crank
         result = jl.regression_main(X, y, prespec)
 
         # Go through and try to find one that can be properly
-        # processed.
-        raw_reg_str = None
-        expr = None
-        # Look for the best usable agent.  The wrinkle is that
-        # Julia handles division by zero differently from sympy
-        # and Python, so some agents that work well enough within
-        # Jessamine yield expressions that sympy can't handle.
-        # So we go through the list of discoveries until we find
-        # one that works.  Note that everything involving sympy
-        # needs to inside of try:catch: here, because even
-        # parsing a string triggers some simplifications that can
-        # fail.  For example, sympy.sin(sympy.oo)), as in
-        # sin(+infinity) gets translated into an accumulation set
-        # object, something representing [-1,1], which can cause
-        # problems later on.  I think this is so sympy can do
-        # things like lim as x->infinity of sin(x)/x = 0, even
-        # though the sin(x) part is non-convergent.
-
-        for r in result.discoveries:
-            raw_reg_str = r.y_num_str
+        # processed.  Look for the best usable agent.  The
+        # wrinkle is that Julia handles division by zero
+        # differently from sympy and Python, so some agents that
+        # work well enough within Jessamine yield expressions
+        # that sympy can't handle.  So we go through the list of
+        # discoveries until we find one that works.  Note that
+        # everything involving sympy needs to inside of
+        # try:catch: here, because even parsing a string triggers
+        # some simplifications that can fail.  For example,
+        # sympy.sin(sympy.oo)), as in sin(+infinity) gets
+        # translated into an accumulation set object, something
+        # representing [-1,1], which can cause problems later on.
+        # I think this is so sympy can do things like lim as
+        # x->infinity of sin(x)/x = 0, even though the sin(x)
+        # part is non-convergent.  We resort to multiprocessing
+        # because sometimes these symbolic operations trigger a
+        # segfault in gmp that there's no way to catch.
+        report = None
+        for julia_result in result.discoveries:
             try:
                 # Elevate all warnings to errors so any trouble
                 # sympy has triggers moving on to the next discovery.
                 # These are generally numerical overflows and such.
                 with warnings.catch_warnings(action="error"):
-                    with time_limit(self.post_simplifier_time):
-                        expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
-                        expr = sympy.simplify(expr, rational=False)
+                    report = run_with_time_limit(60, try_one_discovery, julia_result, model_syms, x_syms, X, y)
+                    self.raw_reg_str_ = julia_result.y_num_str
+                    self.sym_ = report["expr"]
+                    self.set_f()
+                    break
+            except Exception as e:
+                pass
 
-                        # These show up in certain cases of division by zero.
-                        # In Julia, 1.0 / 0.0 is Inf.
-                        if epsilon in expr.free_symbols:
-                            expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
-                            expr = sympy.simplify(expr, rational=False)
-
-                        # These also show up sometimes
-                        if Inf in expr.free_symbols:
-                            expr = sympy.limit(expr, Inf, sympy.oo).evalf()
-                            expr = sympy.simplify(expr, rational=False)
-
-                        self.sym_ = expr
-                        self.raw_reg_str_ = raw_reg_str
-                        # SKL See comment in set_f().
-                        self.set_f()
-
-                        # During fit(), X has already been validated/coerced to an array.
-                        # Calling predict(X) here can trigger a feature-name warning when
-                        # original training data had named columns.
-                        y_hat = self.f_(*np.unstack(X, axis=1))
-                        mse = ((y - y_hat)**2).mean()
-                        if not math.isnan(mse) and math.isfinite(mse):
-                            # If all of that works, we've found a good one, exit the loop
-                            break
-                        # Otherwise, keep looking
-            except:
-                raise
-
-        if self.f_ is None:
+        if report is None:
             raise FitFailedWarning("Jessamine was unable to find a suitable expression")
+
 
         # print(f"Regression.fit: sym: {self.sym_}")
         if self.feature_names_in_sym_ is None:
-            # Vanilla feature names, no need to substitute
-            self.feature_names_in_sym_ = xv
+            # Vanilla feature names
+            self.feature_names_in_sym_ = x_syms
             self.model_sym_ = self.sym_
         else:
-            # Columns have symbolic names, need to substitute
-            translation = [
-                (xv[j], self.feature_names_in_sym_[j]) for j in range(n_vars)
-            ]
-            self.model_sym_ = self.sym_.subs(translation)
+            # Column names as feature names
+            self.model_sym_ = report["expr_model_syms"]
 
         # SKL: fit() must return self
         return self
@@ -338,8 +381,8 @@ class Regressor(RegressorMixin, BaseEstimator):
         # attributes.  So we have to cache the lambdified f in
         # fit() and restore it during unpickling.
         # Hence this method.
-        if hasattr(self, "xv_") and hasattr(self, "sym_"):
-            self.f_ = sympy.lambdify(self.xv_, self.sym_)
+        if hasattr(self, "x_syms_") and hasattr(self, "sym_"):
+            self.f_ = sympy.lambdify(self.x_syms_, self.sym_)
             return self.f_
         else:
             self.f_ = None
