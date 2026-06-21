@@ -7,7 +7,7 @@ name = "jessaminescikitlearn"
 dynamic = ["version"]
 description = "Python scikit-learn wrapper for Jessamine"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE.txt"]
 keywords = []
@@ -37,7 +37,7 @@ dependencies = [
     # pypi is at 0.9.35
     "juliacall~=0.9",
     # Fedora 43 is at 2.3.3, pypi is at 3.0.3
-    "pandas~=3.0",
+    "pandas~=2.3",
 ]
 
 [project.optional-dependencies]
