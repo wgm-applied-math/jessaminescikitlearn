@@ -5,7 +5,6 @@
 import datetime as dt
 import math
 import multiprocessing
-from types import NoneType
 import numpy as np
 import sympy
 from typing import Optional
@@ -66,8 +65,8 @@ def try_one_discovery(julia_result, model_syms, x_syms, X, y):
 
     rating = julia_result.agent.rating
     raw_reg_str = julia_result.y_num_str
+    # print(f"About to consider {raw_reg_str}")
 
-    # print("About to parse")
     expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
     # print("About to simplify")
     expr = sympy.simplify(expr, rational=False)
@@ -327,6 +326,9 @@ class Regressor(RegressorMixin, BaseEstimator):
         # Turn the crank
         result = jl.regression_main(X, y, prespec)
 
+        # print("Got result from Jessamine:")
+        # print(result)
+
         # Go through and try to find one that can be properly
         # processed.  Look for the best usable agent.  The
         # wrinkle is that Julia handles division by zero
@@ -348,15 +350,11 @@ class Regressor(RegressorMixin, BaseEstimator):
         report = None
         for julia_result in result.discoveries:
             try:
-                # Elevate all warnings to errors so any trouble
-                # sympy has triggers moving on to the next discovery.
-                # These are generally numerical overflows and such.
-                with warnings.catch_warnings(action="error"):
-                    report = run_with_time_limit(60, try_one_discovery, julia_result, model_syms, x_syms, X, y)
-                    self.raw_reg_str_ = julia_result.y_num_str
-                    self.sym_ = report["expr"]
-                    self.set_f()
-                    break
+                report = run_with_time_limit(60, try_one_discovery, julia_result, model_syms, x_syms, X, y)
+                self.raw_reg_str_ = julia_result.y_num_str
+                self.sym_ = report["expr"]
+                self.set_f()
+                break
             except Exception as e:
                 pass
 
