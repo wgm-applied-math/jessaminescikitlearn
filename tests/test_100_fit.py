@@ -63,7 +63,7 @@ def test_apply():
     f = sympy.lambdify([x1, x2], sym)
     X, y = make_data()
     yHat = f(X[:, 0], X[:, 1])
-    discrepancy = sum((yHat - y) ** 2)
+    discrepancy = np.mean((yHat - y) ** 2)
     print(f"test_apply: discrepancy = {discrepancy}")
 
 
@@ -75,7 +75,7 @@ def do_fit_predict_pickle():
     r_pickled = pickle.dumps(r)
     r_unpickled = pickle.loads(r_pickled)
     yHat = r.predict(X)
-    discrepancy = sum((yHat - y) ** 2)
+    discrepancy = np.mean((yHat - y) ** 2)
     return r
 
 
@@ -104,7 +104,7 @@ def fit_and_predict(X, y):
     print(r.sym_)
     print(r.model_str())
     yHat = r.predict(X)
-    discrepancy = sum((yHat - y) ** 2)
+    discrepancy = np.mean((yHat - y) ** 2)
     print(f"fit_and_predict: discrepancy = {discrepancy}")
     return r
 
@@ -130,6 +130,6 @@ def fit_and_predict2(X, y):
     print(r.sym_)
     print(r.model_str())
     yHat = r.predict(X)
-    discrepancy = sum((yHat - y) ** 2)
+    discrepancy = np.mean((yHat - y) ** 2)
     print(f"fit_and_predict: discrepancy = {discrepancy}")
     return r
