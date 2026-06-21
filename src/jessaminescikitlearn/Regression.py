@@ -9,7 +9,6 @@ from types import NoneType
 import numpy as np
 import sympy
 from typing import Optional
-import warnings
 
 from sklearn.base import BaseEstimator, RegressorMixin, _fit_context
 from sklearn.exceptions import NotFittedError, FitFailedWarning
@@ -93,11 +92,12 @@ def try_one_discovery(julia_result, model_syms, x_syms, X, y):
     # pickled, so we end up computing it again.
 
     # print("About to lambdify")
-    f = sympy.lambdify(x_syms, expr)
+    f = sympy.lambdify(x_syms, expr.evalf())
 
     # Apply f to each row of X
     y_hat = f(*np.unstack(X, axis=1))
-    mse = ((y - y_hat)**2).mean()
+    # abs here because every so often a complex number sneaks in.
+    mse = (np.abs(y - y_hat)**2).mean()
 
     if not math.isnan(mse) and math.isfinite(mse):
         report = {
