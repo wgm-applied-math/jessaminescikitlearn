@@ -68,8 +68,10 @@ def try_one_discovery(julia_result, model_syms, x_syms, X, y):
     # print(f"About to consider {raw_reg_str}")
 
     expr = sympy.parsing.sympy_parser.parse_expr(raw_reg_str, vd)
-    # print("About to simplify")
-    expr = sympy.simplify(expr, rational=False)
+    # Don't simplify unless absolutely necessary
+    # if epsilon in expr.free_symbols or Inf in expr.free_symbols:
+    #     # print("About to simplify")
+    #     expr = sympy.simplify(expr, rational=False)
 
     # These show up in certain cases of division by zero.
     # In Julia, 1.0 / 0.0 is Inf.
