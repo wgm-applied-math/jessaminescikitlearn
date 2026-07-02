@@ -79,14 +79,14 @@ def try_one_discovery(julia_result, model_syms, x_syms, X, y):
         # print("About to do limit epslion -> 0")
         expr = sympy.limit(expr, epsilon, 0, dir="+").evalf()
         # print("About to simplify")
-        expr = sympy.simplify(expr, rational=False)
+        # expr = sympy.simplify(expr, rational=False)
 
     # These also show up sometimes
     if Inf in expr.free_symbols:
         # print("About to do limit Inf -> infinity")
         expr = sympy.limit(expr, Inf, sympy.oo).evalf()
         # print("About to simplify")
-        expr = sympy.simplify(expr, rational=False)
+        # expr = sympy.simplify(expr, rational=False)
 
     # Need f so that we can check that mse computes but we can't
     # return it from the subprocesses because it can't be
