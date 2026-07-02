@@ -69,7 +69,9 @@ def test_fit_predict_dataframe():
 
 def fit_and_predict(X, y, seed=0x18273645):
     r = JR.Regressor(
-        op_inventory="Polynomial; RationalFunction",
+        op_inventory="RationalFunction",
+        output_size=4,
+        scratch_size=0,
         random_state=seed,
     )
     r.fit(X, y)
